@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Convert an audacity label file to an ffmpeg compatible metadata file.
+
+Remember to put a throwaway label at the very end to mark the extent of the file.
+"""
+import argparse
+import re
+
+if __name__ == "__main__":
+    # Parse arguments
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('inputFile', type=str,
+                        help="The label file from audacity.")
+
+    args = parser.parse_args()
+
+    # Read in all the chapters
+    chapters = list()
+    with open(args.inputFile, 'r') as f:
+        for line in f:
+            x = re.match(r"(\d+\.?\d*)\s+\d+\.?\d*\s+(.*)", line)
+            if not x:
+                continue
+            seconds = float(x.group(1))
+            title = x.group(2)
+
+            timestamp = int(seconds * 1000)
+            chap = {
+                "title": title,
+                "startTime": timestamp
+            }
+            chapters.append(chap)
+
+    # Format the data we read
+    text = ""
+    for i in range(len(chapters)-1):
+        chap = chapters[i]
+        title = chap['title']
+        start = chap['startTime']
+        end = chapters[i+1]['startTime']-1
+        text += ("[CHAPTER]\n"
+                 "TIMEBASE=1/1000\n"
+                 f"START={start}\n"
+                 f"END={end}\n"
+                 f"title={title}\n"
+                 )
+
+    # Send it to the user
+    print(text)
+
+
+# vim: syntax=python

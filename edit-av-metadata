@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# exit when any command fails
+set -e
+
+# Declare colors, if available
+if test -n "$ncolors" && test $ncolors -ge 8; then
+    # Modifiers
+    BOLD="$(tput bold)"
+    RESET="$(tput sgr0)"
+
+    # Colors
+    RED="$(tput setaf 1)"
+    WHITE="$(tput setaf 7)"
+    YELLOW="$(tput setaf 226)"
+fi
+
+# Ensure we have at least 1 arguments
+if (( $# < 1 )); then
+    EXE_NAME=$(basename -- "$0")
+    echo "Usage: ${EXE_NAME} path/to/file"
+    exit 1
+fi
+
+# Set up a temporary directory 
+TMPDIR=$(mktemp -d -t edit-av-metadata)
+
+# Do it!
+for ENTRY in "$@"; do
+    FILENAME="$(basename -- "${ENTRY}")"
+    TEMP_FILE="${TMPDIR}/${FILENAME}"
+    METADATA_FILE="${TMPDIR}/metadata.txt"
+
+    # Alert the User
+    echo "Editing '${FILENAME}'"
+
+    # Extract the Metadata
+    ffmpeg -i "${ENTRY}" -f ffmetadata "${METADATA_FILE}"
+
+    # Open the metadata file for editing and wait for close
+    gvim -f "${METADATA_FILE}"
+
+    # Write the metadata to a new file
+    ffmpeg -i "${ENTRY}" -i "${METADATA_FILE}" -map_metadata 1 -map_chapters 1 -codec copy "${TEMP_FILE}"
+
+    # Replace the old file
+    mv "${TEMP_FILE}" "${ENTRY}" 
+done
+
+echo "Done!"
+
+# vim: syntax=sh

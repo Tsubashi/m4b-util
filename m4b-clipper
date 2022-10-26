@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Declare colors, if available
+if test -n "$ncolors" && test $ncolors -ge 8; then
+    # Modifiers
+    BOLD="$(tput bold)"
+    RESET="$(tput sgr0)"
+
+    # Colors
+    RED="$(tput setaf 1)"
+    WHITE="$(tput setaf 7)"
+    YELLOW="$(tput setaf 226)"
+fi
+
+# Ensure we have at least 2 arguments
+if (( $# < 2 )); then
+    EXE_NAME=$(basename -- "$0")
+    echo "Usage: ${EXE_NAME} seconds_to_trim path/to/m4b"
+    exit 1
+fi
+
+# Set up a temporary directory for extracting the cover art
+TMPDIR=$(mktemp -d -t m4b-clipper)
+
+# Ensure the first argument is a number
+if [[ ! $1 =~ ^[+-]?([0-9]+([.][0-9]*)?|\.[0-9]+)$ ]]; then
+    echo "${RED}First argument must be a number${RESET}"
+    exit
+fi
+TRIM_SECONDS=$1
+shift
+     
+# Ensure all subsequent arguments end in m4b
+for ENTRY in "$@"; do
+    if [[ ! "$ENTRY" == *.m4b ]]; then 
+        echo "${RED}'${WHITE}${ENTRY}${RED}' does not have an m4b extension.${RESET}"
+        exit 1
+    fi
+done
+
+# Do the conversion for each entry
+for ENTRY in "$@"; do
+    FILENAME="$(basename -- "${ENTRY}")"
+    COVER_FILE="${TMPDIR}/${FILENAME%%.m4b}.png"
+    INTERMEDIATE_FILE="${TMPDIR}/${FILENAME%%.m4b}.temp.m4b"
+    # Extract the cover art
+    ffmpeg -i "${ENTRY}" "${COVER_FILE}"
+
+    # Shorten the original file
+    ffmpeg -i "${ENTRY}" -c copy -ss "$TRIM_SECONDS" "${INTERMEDIATE_FILE}"
+
+    # Re-add the cover art
+    ffmpeg -i "${INTERMEDIATE_FILE}" -i "${COVER_FILE}" -map 0:a -map 1 -c copy -disposition:v:0 attached_pic "${ENTRY%%.m4b}.trimmed.m4b"
+done
+
+echo "Done!"
+
+# vim: syntax=sh

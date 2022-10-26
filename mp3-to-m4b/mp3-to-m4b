@@ -1,0 +1,420 @@
+#!/usr/bin/env python3
+"""
+Convert a folder of mp3s to a single m4b.
+
+Any metadata not specified in the arguments will be read from the component
+files.
+"""
+import argparse
+import mutagen
+import os
+import shutil
+import queue
+import multiprocessing as mp
+from pathlib import Path
+from rich import print
+from rich.progress import Progress, SpinnerColumn
+from tempfile import mkdtemp
+from shutil import copy, which
+from natsort import natsorted
+from ffmpeg_progress_yield import FfmpegProgress
+
+
+def parse_args():
+    """Parse all arguments."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('input_folder', type=str,
+                        help="The folder of mp3s.")
+    parser.add_argument('-a', "--author", type=str,
+                        help="Name of the author.")
+    parser.add_argument('-c', "--cover", type=str,
+                        help="Image file to use as cover")
+    parser.add_argument('-o', "--output-dir", type=str,
+                        help="Directory to put the finished audiobook.")
+    parser.add_argument('-n', "--output-name", type=str,
+                        help="Filename to use for finished audiobook. Default"
+                             " is '[Author] - [Title].m4b'.")
+    parser.add_argument('-t', "--title", type=str,
+                        help="Title of the audiobook.")
+    parser.add_argument("--date", type=str,
+                        help="Date to include in metadata.")
+    parser.add_argument("--keep-temp-files", action='store_true',
+                        help="Skip cleanup. (Debugging)")
+    parser.add_argument("--use-filename", "--use-filenames",
+                        action='store_true',
+                        help="Use the filename as the chapter title instead "
+                             " of the title from the file's metadata.")
+    parser.add_argument("--version", action='store_true',
+                        help="Show version and exit.")
+
+    return parser.parse_args()
+
+
+class BookInfo:
+    """Read and store all the info we need to make the audiobook."""
+
+    def __init__(self,
+                 base_folder,
+                 use_filename=False,
+                 title=None,
+                 author=None,
+                 date=None):
+        """Read in all the info."""
+        # Setup variables
+        self._base_folder = base_folder
+        self.metadata = ""
+        self.chapters = list()
+        self.files = list()
+        self.temp_files = list()
+        self.title = title
+        self.author = author
+        self.date = date
+
+        self._read_chapter_files()
+        self._update_metadata()
+
+    def _read_chapter_files(self):
+        """Read in all the chapter files."""
+        time_counter = 0
+        segment_counter = 0
+        mp3_list = self._base_folder.glob('*.mp3')
+        self.files = natsorted(mp3_list, key=str)
+        for file in self.files:
+            # Count which segment we are on. Used in case the chapter has no
+            # title.
+            segment_counter += 1
+
+            # Mutagen doesn't support comment tags by default.
+            mp3 = mutagen.File(file, easy=True)
+            mp3.tags.RegisterTextKey('comment', 'comment')
+            if not mp3:
+                print("[bold yellow]Warning:[/] Unable to parse "
+                      f"'[bold white]{file}[/]'. Skipping.")
+                continue
+            # Attempt to fill any missing metadata
+            if not self.title:
+                self.title = ensure_delisted(mp3.get('album'))
+            if not self.author:
+                self.author = ensure_delisted(mp3.get('artist'))
+            if not self.date:
+                self.date = ensure_delisted(mp3.get('date'))
+
+            # Add chapter info to our lists
+            chapter_title = ensure_delisted(mp3.get('title'))
+            if args.use_filename:
+                chapter_title = file.stem
+            if not chapter_title:
+                chapter_title = segment_counter
+            self.chapters.append(
+                {
+                    "title": chapter_title,
+                    "startTime": time_counter
+                }
+            )
+
+            # Convert from seconds to miliseconds, then store it for the next
+            # chapter.
+            time_counter += (mp3.info.length * 1000)
+
+        # Add one last entry to our chapter list, to mark the end of the file.
+        # This will get discarded when we write the metadata out.
+        self.chapters.append(
+            {
+                "title": "The Very End of the Book",
+                "startTime": time_counter
+            }
+        )
+
+    def _update_metadata(self):
+        """Use the info from chapters to update the metadata variable."""
+        # Write global header
+        self.metadata = (";FFMETADATA1\n"
+                         "major_brand=M4A\n"
+                         "minor_version=512\n"
+                         "compatible_brands=M4A isomiso2\n"
+                         f"title={self.title}\n"
+                         f"artist={self.author}\n"
+                         f"album={self.title}\n"
+                         f"date={self.date}\n"
+                         "genre=Audiobook\n"
+                         )
+
+        # Add chapters to metadata
+        for i in range(len(self.chapters)-1):
+            title = self.chapters[i]['title']
+            start = self.chapters[i]['startTime']
+            end = self.chapters[i+1]['startTime']-1
+            self.metadata += ("[CHAPTER]\n"
+                              "TIMEBASE=1/1000\n"
+                              f"START={start}\n"
+                              f"END={end}\n"
+                              f"title={title}\n"
+                              )
+
+
+def ensure_delisted(var):
+    """Return the first item if var is a list."""
+    if not var:
+        return None
+    if isinstance(var, list):
+        if len(var) > 0:
+            return var[0]
+        else:
+            return None
+    return var
+
+
+def run_ffmpeg(cmd, task_name, progress_group):
+    """Run ffmpeg command and show progress."""
+    ff = FfmpegProgress(cmd)
+    current_percent = 0
+
+    task = progress_group.add_task(f"[cyan]{task_name}", total=100)
+    for percent in ff.run_command_with_progress():
+        advance_amount = percent - current_percent
+        progress_group.update(task, advance=advance_amount)
+        current_percent = percent
+    progress_group.update(task, completed=100)
+
+
+def process_ffmpeg_job(q, status_q, ffmpeg_exe):
+    """Multiprocessing worker that runs an ffmpeg command."""
+    while True:
+        args = q.get()
+        if args is None:
+            break
+
+        (job_id, cmd) = args
+
+        # Let the outside world know we started
+        status_q.put((job_id, "started"))
+
+        ff = FfmpegProgress(cmd)
+
+        try:
+            for percent in ff.run_command_with_progress():
+                status_q.put((job_id, percent))
+            status_q.put((job_id, "finished"))
+        except RuntimeError as e:
+            print("[bold red]Error:[/] Something went wrong with ffmpeg:")
+            print(e)
+            pass
+
+
+def read_status_queue(q, tasklist, progress_group):
+    """Read info from the status queue and update the display."""
+    try:
+        master_task = tasklist[0]["task_id"]
+        (job_id, job_status) = q.get_nowait()
+        filename = tasklist[job_id]["name"]
+        if job_status == "started":
+            tasklist[job_id]["task_id"] = progress_group.add_task(
+                f"[dark_cyan]|- Converting '[white]{filename}[/]'.",
+                total=100
+            )
+        elif job_status == "finished":
+            progress_group.update(
+                tasklist[job_id]["task_id"],
+                completed=100,
+                visible=False
+            )
+            progress_group.update(master_task, advance=1)
+        else:
+            progress_group.update(
+                tasklist[job_id]["task_id"],
+                completed=job_status
+            )
+    except queue.Empty:
+        pass  # We don't actually care if the finished queue is empty
+
+
+def process_all_mp3s(info, progress_group, temp_dir):
+    """Use multiprocessing to convert all mp3 files."""
+    # Setup our processing pool
+    num_cores = os.cpu_count()
+    q = mp.Queue(maxsize=num_cores)
+    status_q = mp.Queue(maxsize=100)
+    pool = mp.Pool(
+        num_cores,
+        initializer=process_ffmpeg_job,
+        initargs=(q, status_q, ffmpeg_exe)
+    )
+
+    filelist = ""
+    tasklist = list()
+    master_task = progress_group.add_task(
+        "[cyan]Converting files to m4a.",
+        total=len(info.files)
+    )
+    tasklist.append({
+        "name": "Master",
+        "task_id": master_task
+    })
+
+    for file in info.files:
+        # Determine what to call the output file
+        out_m4a = temp_dir/f"{file.stem}.m4a"
+
+        # Record the file for concatination later
+        info.temp_files.append(out_m4a)
+
+        # Write the FFMPEG command
+        cmd = [ffmpeg_exe, "-y", "-i", file, out_m4a]
+
+        # Mark a new task as beginning.
+        tasklist.append({
+            "name": file.stem,
+            "task_id": None
+        })
+        job_id = len(tasklist)-1
+
+        # Send the info to our workers
+        args = (job_id, cmd)
+        while True:
+            # Check the status
+            read_status_queue(status_q, tasklist, progress_group)
+            # See if there is space in the queue
+            try:
+                q.put_nowait(args)  # blocks until q is below maxsize
+                # Go to the next file if we were able to add to the queue
+                break
+            except queue.Full:
+                pass  # We will just try again.
+
+    # Tell the workers we are all done
+    for _ in range(num_cores):
+        while True:
+            # Check the status
+            read_status_queue(status_q, tasklist, progress_group)
+            # See if there is space in the queue
+            try:
+                q.put_nowait(None)
+                break
+            except queue.Full:
+                pass  # We will just try again.
+    pool.close()
+
+    # Wait for all the jobs to finish
+    while not (q.empty() and status_q.empty()):
+        read_status_queue(status_q, tasklist, progress_group)
+    pool.join()
+
+    # Make sure the master task shows as completed
+    # Yes, we need to double check the status_q again, because the process of
+    # verfiying the status_q is empty and joining the pool is not atomic.
+    while not status_q.empty():
+        read_status_queue(status_q, tasklist, progress_group)
+    progress_group.update(master_task, completed=len(info.files))
+
+    return filelist
+
+
+def do_conversion(info, args):
+    """Use ffmpeg to actually convert everything."""
+    # Figure out our final output file location
+    final_name = args.output_name
+    if not final_name:
+        final_name = f"{info.author} - {info.title}.m4b"
+    if not final_name.endswith(".m4b"):
+        final_name = f"{final_name}.m4b"
+
+    if args.output_dir:
+        final_file = Path(args.output_dir)
+    else:
+        final_file = Path()
+    final_file = final_file/final_name
+
+    # Start writing all our stuff out
+    temp_dir = Path(mkdtemp())
+    filelist_file = temp_dir/"filelist"
+    metadata_file = temp_dir/"ffmetadata"
+    temp_long_file = temp_dir/"long.m4a"
+    intermediate_file = temp_dir/"intermediate.m4b"
+
+    # Write the metadata to a temp file.
+    with open(metadata_file, 'w') as f:
+        print(info.metadata, file=f)
+
+    try:
+        with Progress(
+            SpinnerColumn(),
+            *Progress.get_default_columns()
+        ) as progress_group:
+            # First, convert all mp3s to m4a, in parallel.
+            process_all_mp3s(info, progress_group, temp_dir)
+
+            # Next, concatanate those m4a files into an m4b
+            # Start by writing the filelist to a temp file.
+            with open(filelist_file, 'w') as f:
+                for file in info.temp_files:
+                    print(f"file '{file}", file=f)
+
+            # Then use that file to concatinate everything.
+            cmd = [ffmpeg_exe, "-f", "concat", "-safe", "0", "-i",
+                   filelist_file, "-c", "copy", "-y", temp_long_file]
+            run_ffmpeg(cmd, "Combining Audio Files.", progress_group)
+
+            # Cleanup, if applicable
+            if not args.keep_temp_files:
+                for file in info.temp_files:
+                    file.unlink()
+
+            # Now, add chapter info
+            cmd = [ffmpeg_exe, "-y", "-i", temp_long_file, "-i", metadata_file,
+                   "-map_metadata", "1", "-map_chapters", "1", "-c", "copy",
+                   intermediate_file]
+            run_ffmpeg(cmd, "Converting to .m4b", progress_group)
+
+            # Cleanup, if applicable
+            if not args.keep_temp_files:
+                temp_long_file.unlink()
+
+            # Add cover artwork if specified, otherwise just copy the
+            # intermediate
+            if args.cover:
+                cmd = [ffmpeg_exe, "-y", "-i", intermediate_file, "-i",
+                       args.cover, "-map", "0:a", "-map", "1", "-c", "copy",
+                       "-disposition:v:0", "attached_pic", final_file]
+                run_ffmpeg(cmd, "Adding Cover", progress_group)
+            else:
+                task = progress_group.add_task("[cyan]Copying output.")
+                copy(intermediate_file, final_file)
+                progress_group.update(task, total=1, completed=1)
+
+    except RuntimeError as e:
+        print("[bold red]Error:[/] Something went wrong with ffmpeg:")
+        print(e)
+        print(f"[yellow]Temp Dir:[/] {temp_dir}")
+        shutil.rmtree(temp_dir)
+        exit(-2)
+
+    # Clean up temp-dir
+    if not args.keep_temp_files:
+        shutil.rmtree(temp_dir)
+    print(f"[cyan]Writing '[yellow]{final_file}[/]'")
+
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    if args.version:
+        print("[green]mp3-to-m4a[/], Version 0.1.5")
+        exit(1)
+
+    ffmpeg_exe = which('ffmpeg')
+    if not ffmpeg_exe:
+        print("[bold red]Error:[/] Could not find ffmpeg.")
+        exit(-1)
+
+    info = BookInfo(
+        Path(args.input_folder),
+        args.use_filename,
+        args.title,
+        args.author,
+        args.date)
+
+    # Use ffmpeg
+    final_file = do_conversion(info, args)
+
+    print("[green]Done![/]")
+# vim: syntax=python

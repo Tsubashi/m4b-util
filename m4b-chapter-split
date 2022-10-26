@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Declare colors, if available
+if test -n "$ncolors" && test $ncolors -ge 8; then
+    # Modifiers
+    BOLD="$(tput bold)"
+    RESET="$(tput sgr0)"
+
+    # Colors
+    RED="$(tput setaf 1)"
+    WHITE="$(tput setaf 7)"
+    YELLOW="$(tput setaf 226)"
+fi
+
+
+# Ensure we have at least 1 arguments
+if (( $# < 1 )); then
+    EXE_NAME=$(basename -- "$0")
+    echo "Usage: ${EXE_NAME} path/to/m4b"
+    exit 1
+fi
+
+# Ensure all subsequent arguments end in m4b
+for ENTRY in "$@"; do
+    if [[ ! "$ENTRY" == *.m4b ]]; then 
+        echo "${RED}'${WHITE}${ENTRY}${RED}' does not have an m4b extension.${RESET}"
+        exit 1
+    fi
+done
+
+set -efu
+
+for inputFile in "$@"; do
+    # Dump the cover art
+    ffmpeg -i ${inputFile} ${inputFile%%.m4b}.png
+    
+    # Dump the chapters
+    ffprobe -hide_banner "$inputFile" -print_format json -show_chapters -loglevel error |
+        jq -r '.chapters[] | [ .id, .start_time, .end_time, .tags.title | tostring ] | join(" ")' |
+        while read ID START END CHAPTER; do
+            TEMP="000$ID"
+            ID_PADDED="${TEMP:(-3)}"
+            ffmpeg -nostdin \
+                   -ss "$START" -to "$END" \
+                   -i "$inputFile" \
+                   -map 0:a \
+                   -map_chapters -1 \
+                   -c copy \
+                   -metadata title="$CHAPTER" \
+                   "${inputFile%.*}-$ID_PADDED.m4a";
+        done
+done
+echo "DONE!"
+
+# vim: syntax=sh
