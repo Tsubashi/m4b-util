@@ -1,5 +1,5 @@
 ## Project Specific ##
-version_generator/_my_version.py
+__version__.py
 
 ## MacOS ##
 # General
