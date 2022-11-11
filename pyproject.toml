@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "m4b_util"
+description = "A collection of command line utilities for creating, editing, and generally working with m4b files."
+readme = "README.md"
+requires-python = ">=3.8"
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+]
+dependencies = [
+    "natsort ~= 8.2.0",
+    "rich ~= 12.6.0"
+]
+
+[project.optional-dependencies]
+test = ["tox", "pytest-cov"]
+
+[project.scripts]
+m4b-util = "m4b_util:__main__.main"
+
+[tool.setuptools_scm]
+write_to = "src/m4b_util/__version__.py"
+
+[tool.setuptools.dynamic]
+version = {attr = "m4b_util.__version__.__version__"}
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report html --cov-report term-missing --cov-fail-under 100"
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["src"]
+
+[tool.yapf]
+column_limit = 120
+
+[tool.isort]
+py_version = "auto"
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = True
+envlist = flake8,clean,py310,report
+
+[gh-actions]
+python =
+    3.10: flake8,py310
+
+[testenv]
+commands = pytest --cov {envsitepackagesdir}/src --cov-append --cov-report=term-missing
+deps =
+    pytest
+    pytest-cov
+
+[testenv:flake8]
+commands = flake8 src/ tests/
+skip_install = true
+deps =
+    flake8
+    flake8-bugbear
+    flake8-docstrings
+    flake8-import-order
+    flake8-colors
+    pep8-naming
+
+[testenv:clean]
+deps = coverage[toml]
+skip_install = true
+commands = coverage erase
+
+[testenv:report]
+deps = coverage[toml]
+skip_install = true
+commands =
+    coverage report
+    coverage html -d coverage_html
+
+"""

@@ -1,0 +1,20 @@
+[flake8]
+select = B,C,D,E,F,I,N,W,B902,B950
+ignore = E501, D212, D100
+exclude =
+    .tox,
+    .git,
+    __pycache__,
+    docs/source/conf.py,
+    build,
+    dist,
+    tests/fixtures/*,
+    *.pyc,
+    *.egg-info,
+    .cache,
+    .eggs
+max-complexity = 10
+import-order-style = google
+docstring-convention = google
+application-import-names = m4b_util
+max-line-length = 120
