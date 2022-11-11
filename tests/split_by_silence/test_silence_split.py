@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 
 from m4b_util.helpers import ffprobe
-from m4b_util.split_by_silence import split
+from m4b_util.split_by_silence import silence_split
 
 
 @contextmanager
@@ -27,7 +27,7 @@ def _run_split_cmd(arg_list):
     argv_patch.extend(arg_list)
 
     with mock.patch("sys.argv", argv_patch):
-        split.split_audio()
+        silence_split.split_audio()
 
 
 def _run_and_check_output(cmd_args, output_path, expected_files=None, check_func=None):
@@ -72,7 +72,7 @@ def test_get_segment_times():
         "[silencedetect @ 0x12860aa70] silence_end: 20.000 | silence_duration: 2.5000",
     ]
     expected = [(0.0, 2.5), (5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 25.0)]
-    assert split._get_segment_times(0, lines) == expected
+    assert silence_split._get_segment_times(0, lines) == expected
 
 
 def test_get_segment_times_non_zero_start_time():
@@ -88,7 +88,7 @@ def test_get_segment_times_non_zero_start_time():
         "[silencedetect @ 0x12860aa70] silence_end: 20.000 | silence_duration: 2.5000",
     ]
     expected = [(5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 25.0)]
-    assert split._get_segment_times(1.25, lines) == expected
+    assert silence_split._get_segment_times(1.25, lines) == expected
 
 
 def test_get_segment_times_detect_end_first():
@@ -104,13 +104,13 @@ def test_get_segment_times_detect_end_first():
         "[silencedetect @ 0x12860aa70] silence_end: 20.000 | silence_duration: 2.5000",
     ]
     expected = [(5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 25.0)]
-    assert split._get_segment_times(1.25, lines) == expected
+    assert silence_split._get_segment_times(1.25, lines) == expected
 
 
 def test_get_segment_times_empty():
     """Notice when we don't have any silence to extract."""
     expected = [(0.0, 10000000.0)]
-    assert split._get_segment_times(0, [""]) == expected
+    assert silence_split._get_segment_times(0, [""]) == expected
 
 
 def test_split_audio(tmp_path, silences_file_path):
