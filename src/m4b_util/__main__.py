@@ -37,7 +37,6 @@ def main():
     # Set up argparse
     parser = argparse.ArgumentParser(
         prog="m4b-util",
-        description='A Collection of utilities for interacting with m4b files.',
         usage=usage
     )
     parser.add_argument('command', help='Subcommand to run')
