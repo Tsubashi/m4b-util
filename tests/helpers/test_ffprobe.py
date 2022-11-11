@@ -8,10 +8,10 @@ def test_video_only(video_only_file):
     assert probe.audio is None
     expected_tags = {
         'compatible_brands': 'isomiso2avc1mp41',
-        'encoder': 'Lavf59.27.100',
         'major_brand': 'isom',
         'minor_version': '512'
     }
+    del probe.tags['encoder']  # Encoder will be different depending on the version of ffmpeg
     assert probe.tags == expected_tags
 
 
