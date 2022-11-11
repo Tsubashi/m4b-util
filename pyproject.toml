@@ -23,10 +23,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["tox", "pytest-cov", "scipy", "numpy"]
+test = ["tox", "pytest-cov"]
 
 [project.scripts]
-m4b-util = "m4b_util:main"
+m4b-util = "m4b_util:__main__.main"
 
 [tool.setuptools_scm]
 write_to = "src/m4b_util/__version__.py"
@@ -52,6 +52,10 @@ legacy_tox_ini = """
 [tox]
 isolated_build = True
 envlist = flake8,clean,py310,report
+
+[gh-actions]
+python =
+    3.10: flake8,clean,py310,report
 
 [testenv]
 commands = pytest --cov {envsitepackagesdir}/src --cov-append --cov-report=term-missing
