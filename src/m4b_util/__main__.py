@@ -59,5 +59,7 @@ def main():
     exit(retcode)
 
 
-if __name__ == "__main__":  # nocover
-    main()  # nocover - We don't test this directly. We just make it simple enough that we can trust it works.
+# We don't test coverage for this, since we don't test it directly.
+# We just make it simple enough that we can trust it works.
+if __name__ == "__main__":  # pragma: no cover
+    main()  # pragma: no cover
