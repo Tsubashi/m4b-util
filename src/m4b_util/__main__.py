@@ -29,8 +29,10 @@ def main():
              "Allowed Commands:\n"
              )
     for name, (_, description) in allowed_commands.items():
-        usage += f"{name}:\t\t{description}\n"
-    usage += "\n"
+        usage += f"{name:18}: {description}\n"
+    usage += ("\nFor more help with a command, use m4b-util <command> --help\n"
+              " \n"
+              )
 
     # Set up argparse
     parser = argparse.ArgumentParser(
