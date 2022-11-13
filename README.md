@@ -23,5 +23,14 @@ containing the audio between the silences.
 
 **Example:**
 ```shell
-$ m4b-util split-by-silence /path/to/input.mp3  --output-dir /path/to/output --output_pattern "chapter_{:03d}.mp3"
+$ m4b-util split-by-silence /path/to/input.mp3 --output-dir /path/to/output --output_pattern "chapter_{:03d}.mp3"
+```
+
+### Split By Chapter
+The `split-by-chapter` command takes a single audio file input with chapter metadata, scans through those chapters, 
+and writes out individual files for each of those chapters.
+
+**Example:**
+```shell
+$ m4b-util split-by-chapter /path/to/input.mp3 --output-dir /path/to/output --output_pattern "chapter_{:03d}.mp3"
 ```

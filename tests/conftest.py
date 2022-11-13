@@ -63,6 +63,19 @@ def m4a_path(tmp_path):
 
 
 @pytest.fixture()
+def covered_audio_file(tmp_path, test_data_path):
+    """Path to an m4a file with a cover image."""
+    output_path = tmp_path / "covered_audio_file.m4a"
+    cover_path = test_data_path / "cover.png"
+    cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
+           "-i", cover_path, "-c:v", "png",
+           "-map", "0:a", "-map", "1", "-disposition:v:0", "attached_pic",
+           output_path
+           ]
+    run(cmd, capture_output=True, check=True)
+    return output_path
+
+@pytest.fixture()
 def video_only_file(tmp_path):
     """File containing multiple segments of louder and softer sounds."""
     output_path = tmp_path / "video_only.mp4"

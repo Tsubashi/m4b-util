@@ -1,4 +1,4 @@
-"""Test Split-by-silence."""
+"""Test the split subcommand."""
 from contextlib import contextmanager
 import os
 from pathlib import Path
@@ -6,8 +6,8 @@ from unittest import mock
 
 import pytest
 
+from m4b_util import split
 from m4b_util.helpers import ffprobe
-from m4b_util.split_by_silence import silence_split
 
 
 @contextmanager
@@ -27,7 +27,7 @@ def _run_split_cmd(arg_list):
     argv_patch.extend(arg_list)
 
     with mock.patch("sys.argv", argv_patch):
-        silence_split.split_audio()
+        split.run()
 
 
 def _run_and_check_output(cmd_args, output_path, expected_files=None, check_func=None):
@@ -56,61 +56,6 @@ def _run_and_check_output(cmd_args, output_path, expected_files=None, check_func
     # Make sure there aren't any other files in the directory other than the filelist
     for file in output_path.glob("*"):
         assert (file.name in expected_files)
-
-
-def test_get_segment_times():
-    """Extract segment times from ffmpeg output."""
-    lines = [
-        "[silencedetect @ 0x12860aa70] silence_start: 2.5000",
-        "size=N/A time=00:00:25.00 bitrate=N/A speed= 836x",
-        "[silencedetect @ 0x12860aa70] silence_end: 5.0000 | silence_duration: 2.5000",
-        "[silencedetect @ 0x12860aa70] silence_start: 7.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 10.000 | silence_duration: 2.5000",
-        "[silencedetect @ 0x12860aa70] silence_start: 12.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 15.0000 | silence_duration: 2.5000",
-        "[silencedetect @ 0x12860aa70] silence_start: 17.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 20.000 | silence_duration: 2.5000",
-    ]
-    expected = [(0.0, 2.5), (5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 25.0)]
-    assert silence_split._get_segment_times(0, lines) == expected
-
-
-def test_get_segment_times_non_zero_start_time():
-    """Extract segment times from ffmpeg output, starting at a non-zero time."""
-    lines = [
-        "[silencedetect @ 0x12860aa70] silence_end: 5.0000 | silence_duration: 2.5000",
-        "size=N/A time=00:00:25.00 bitrate=N/A speed= 836x",
-        "[silencedetect @ 0x12860aa70] silence_start: 7.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 10.000 | silence_duration: 2.5000",
-        "[silencedetect @ 0x12860aa70] silence_start: 12.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 15.0000 | silence_duration: 2.5000",
-        "[silencedetect @ 0x12860aa70] silence_start: 17.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 20.000 | silence_duration: 2.5000",
-    ]
-    expected = [(5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 25.0)]
-    assert silence_split._get_segment_times(1.25, lines) == expected
-
-
-def test_get_segment_times_detect_end_first():
-    """Handle segment times even if silence_end comes first."""
-    lines = [
-        "[silencedetect @ 0x12860aa70] silence_end: 5.0000 | silence_duration: 2.5000",
-        "size=N/A time=00:00:25.00 bitrate=N/A speed= 836x",
-        "[silencedetect @ 0x12860aa70] silence_start: 7.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 10.000 | silence_duration: 2.5000",
-        "[silencedetect @ 0x12860aa70] silence_start: 12.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 15.0000 | silence_duration: 2.5000",
-        "[silencedetect @ 0x12860aa70] silence_start: 17.5000",
-        "[silencedetect @ 0x12860aa70] silence_end: 20.000 | silence_duration: 2.5000",
-    ]
-    expected = [(5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 25.0)]
-    assert silence_split._get_segment_times(1.25, lines) == expected
-
-
-def test_get_segment_times_empty():
-    """Notice when we don't have any silence to extract."""
-    expected = [(0.0, 10000000.0)]
-    assert silence_split._get_segment_times(0, [""]) == expected
 
 
 def test_split_audio(tmp_path, silences_file_path):

@@ -9,7 +9,7 @@ def _run_bind_cmd(arg_list):
     argv_patch.extend(arg_list)
 
     with patch("sys.argv", argv_patch):
-        m4b_util.bind()
+        m4b_util.bind.run()
 
 
 def test_show_order(mp3_path, capsys):

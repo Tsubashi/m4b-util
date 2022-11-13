@@ -1,2 +1,2 @@
-"""The Audiobook Binder Package."""
-from .Bind import bind  # noqa: F401
+"""Bind Audiobook SubCommand"""
+from .subcommand import run  # noqa: F401

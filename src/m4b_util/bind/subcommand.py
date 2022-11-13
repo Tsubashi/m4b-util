@@ -1,4 +1,4 @@
-"""Primary components for bind mode."""
+"""Bind Command"""
 import argparse
 from pathlib import Path
 import sys
@@ -37,7 +37,7 @@ def _parse_bind_args():
     return parser.parse_args(sys.argv[2:])
 
 
-def bind():
+def run():
     """Entrypoint for bind subcommand."""
     binder = Binder()
     args = _parse_bind_args()
