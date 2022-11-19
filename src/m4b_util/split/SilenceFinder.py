@@ -10,20 +10,18 @@ from .SegmentData import SegmentData
 @dataclass
 class SilenceFinder:
     """Finds silence in a file and generates a list of SegmentData's representing the non-silence portions."""
-    input_path: Path = None
+    input_path: Path
     start_time: float = 0.0
     end_time: float = 0.0
     silence_duration: float = 3.0
     silence_threshold: int = -35
-    minimum_segment_size: float = 1.0
     _ffoutput: list = field(init=False, repr=False)
 
-    def run(self):
+    def find(self):
         self._run_silencedetect()
         times = self._get_segment_times()
         if not times:
-            print("[bold red]Error:[/] No silence found.")
-            exit(1)
+            return list()
 
         # Generate SegmentData list
         retval = list()
@@ -67,6 +65,7 @@ class SilenceFinder:
         # Segments start when silence ends, and segments end when silence starts.
         segment_starts = []
         segment_ends = []
+        start_time = self.start_time or 0
         end_time = 10000000.0
         for line in self._ffoutput:
             # Check for silence start
@@ -75,7 +74,7 @@ class SilenceFinder:
                 segment_ends.append(float(silence_start_match.group('start')))
                 if len(segment_starts) == 0:
                     # Started with non-silence.
-                    segment_starts.append(self.start_time or 0.)
+                    segment_starts.append(start_time)
                 continue
 
             # Check for silence end
@@ -93,7 +92,7 @@ class SilenceFinder:
 
         if len(segment_starts) == 0:
             # No silence found.
-            segment_starts.append(self.start_time)
+            return None
 
         if len(segment_starts) > len(segment_ends):
             # Finished with non-silence.

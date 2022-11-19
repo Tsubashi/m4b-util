@@ -1,32 +1,50 @@
 """The Splitter Class."""
-from m4b_util.helpers import ffprogress
+from dataclasses import dataclass
+from pathlib import Path
+
+from m4b_util.helpers.ParallelFFmpeg import ParallelFFmpeg
+from m4b_util.helpers import cover_utils
 
 
+@dataclass
 class Splitter:
     """Holds all the info and methods for splitting a file."""
+    input_path: Path
+    output_dir_path: Path
+    segment_list: list
 
-    def __init__(self):
-        """Set default values."""
-        self.segment_list = list()
-        self.input_file = None
-        self.start_time = 0
-        self.end_time = 0
-        self.ffoutput = ""
+    output_pattern: str = "segment_{i:04d}.mp3"
 
     def split(self):
         """Do the actual splitting."""
-        # Remove any segments less than 1 second
-        # Use .copy() so that we can modify the original without throwing off the iterator
-        for start, end in output.copy():
-            if end - start < 1.0:
-                output.remove((start, end))
+        cover_utils.extract_cover(self.input_path, self.output_dir_path / "cover.png")
 
-    def _extract_cover(self, output_path):
-        """Dump an audio file's cover image to disk."""
-        allowed_extensions = [".png", ".jpg", ".jpeg"]
-        if output_path.suffix.lower() not in allowed_extensions:
-            raise ValueError(f"Output extension must be one of {allowed_extensions}")
-        cmd = ["ffmpeg", "-y", "-i", self.input_path, output_path]
-        ffprogress.run(cmd, "Extracting cover")
+        # Generate task list
+        tasks = list()
+        for i, segment in enumerate(self.segment_list):
+            time = segment.end_time - segment.start_time
+
+            self.output_dir_path.mkdir(exist_ok=True)
+            output_path = self.output_dir_path / self.output_pattern.format(i, i=i, title=segment.title)
+
+            cmd = ["ffmpeg", "-ss", str(segment.start_time), "-t", str(time), "-i", self.input_path,
+                   "-map", "0:a", "-map_chapters", "-1", "-y"]
+            if segment.title:
+                cmd.extend(["-metadata", f"title={segment.title}"])
+            cmd.append(output_path)
+
+            name = f"Splitting segment {i}"
+            if segment.title:
+                name += f" - {segment.title}"
+            tasks.append({
+                "name": name,
+                "command": cmd
+            })
+
+        # Process splits in parallel
+        p = ParallelFFmpeg(f"Splitting '{self.input_path.name}'")
+        p.process(tasks)
+
+
 
 

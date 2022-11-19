@@ -60,3 +60,12 @@ def test_bind_wav_defaults(wav_path, tmp_path, capsys):
     output = capsys.readouterr()
     assert ("Writing " in output.out)
     assert ("None - None.m4b" in output.out)
+
+
+def test_bind_fail(tmp_path, capsys):
+    """Avoid telling the user we output a file when we didn't."""
+    fake_folder = tmp_path / "fake"
+    fake_folder.mkdir()
+    _run_bind_cmd([str(fake_folder)])
+    output = capsys.readouterr()
+    assert "Writing" not in output.out

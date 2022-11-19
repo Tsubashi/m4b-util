@@ -87,3 +87,11 @@ def test_run_fail(capsys):
     ffprogress.run(cmd, "Testing progress message")
     output = capsys.readouterr()
     assert ("Something went wrong with ffmpeg" in output.out)
+
+
+def test_run_no_printing_errors():
+    """Handle a crashing command with print_errors turned off."""
+    cmd = ["ffmpeg", "-not-a-real-option"]
+    with pytest.raises(RuntimeError) as e:
+        ffprogress.run(cmd, print_errors=False)
+    assert "Error running command" in str(e.value)

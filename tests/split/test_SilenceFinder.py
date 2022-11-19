@@ -1,7 +1,12 @@
 """Test Split-by-silence."""
+from pathlib import Path
+
 import pytest
 
-from m4b_util.split import SilenceFinder
+from m4b_util.split import SegmentData, SilenceFinder
+
+
+fake_input = Path("Not-a-real-file")
 
 
 def test_get_segment_times():
@@ -18,7 +23,7 @@ def test_get_segment_times():
         "[silencedetect @ 0x12860aa70] silence_end: 20.000 | silence_duration: 2.5000",
     ]
     expected = [(0.0, 2.5), (5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 25.0)]
-    sf = SilenceFinder()
+    sf = SilenceFinder(fake_input)
     sf._ffoutput = lines
     assert sf._get_segment_times() == expected
 
@@ -36,7 +41,7 @@ def test_get_segment_times_non_zero_start_time():
         "[silencedetect @ 0x12860aa70] silence_end: 20.000 | silence_duration: 2.5000",
     ]
     expected = [(5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 25.0)]
-    sf = SilenceFinder(start_time=1.25)
+    sf = SilenceFinder(fake_input, start_time=1.25)
     sf._ffoutput = lines
     assert sf._get_segment_times() == expected
 
@@ -55,15 +60,15 @@ def test_get_segment_times_detect_end_first():
         "[silencedetect @ 0x12860aa70] silence_start: 22.5000",
     ]
     expected = [(5.0, 7.5), (10.0, 12.5), (15.0, 17.5), (20.0, 22.5)]
-    sf = SilenceFinder(start_time=1.25)
+    sf = SilenceFinder(fake_input, start_time=1.25)
     sf._ffoutput = lines
     assert sf._get_segment_times() == expected
 
 
 def test_get_segment_times_empty():
     """Notice when we don't have any silence to extract."""
-    expected = [(1.25, 10000000.0)]
-    sf = SilenceFinder(start_time=1.25)
+    expected = None
+    sf = SilenceFinder(fake_input, start_time=1.25)
     sf._ffoutput = [""]
     assert sf._get_segment_times() == expected
 
@@ -94,7 +99,7 @@ def test_run_silencedetect_fail(tmp_path, capsys):
     """Get ffmpeg output from a failed silencedetect filter."""
     fake_file = tmp_path / "Not-a-real-file.mp3"
     open(fake_file, 'a').close()
-    sf = SilenceFinder(input_path=fake_file)
+    sf = SilenceFinder(fake_file)
     with pytest.raises(SystemExit) as e:
         sf._run_silencedetect()
     assert (e.value.code == 1)
@@ -109,9 +114,7 @@ def test_run_silencedetect_no_silence(silences_file_path):
         "silence_end",
         "silence_duration",
     ]
-    sf = SilenceFinder(
-        input_path=silences_file_path
-    )
+    sf = SilenceFinder(silences_file_path)
     sf._run_silencedetect()
     for item in unexpected:
         match_list = [line for line in sf._ffoutput if item in line]
@@ -138,3 +141,16 @@ def test_run_silencedetect_variable_start_end_times(silences_file_path):
     for item in expected:
         match_list = [line for line in sf._ffoutput if item in line]
         assert len(match_list) == 1
+
+
+def test_find(silences_file_path):
+    """Find silences in a file."""
+    expected = [
+        SegmentData(id=0, start_time=00.0000, end_time=2.49979),
+        SegmentData(id=1, start_time=05.0001, end_time=7.49992),
+        SegmentData(id=2, start_time=10.0001, end_time=12.4999),
+        SegmentData(id=3, start_time=15.0001, end_time=17.5000),
+        SegmentData(id=4, start_time=20.0107, end_time=20.0100)
+    ]
+    actual = SilenceFinder(silences_file_path, silence_duration=0.25).find()
+    assert actual == expected

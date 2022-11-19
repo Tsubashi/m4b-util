@@ -6,6 +6,9 @@ import pytest
 
 from expected_data import expected_data  # noqa
 
+# Let pytest know we would like them to handle asserts in our helper code
+pytest.register_assert_rewrite("testhelpers")
+
 
 def _generate_tone_files(dir_path, extension):
     """Generate a folder of sine wave audio files.
@@ -75,10 +78,21 @@ def covered_audio_file(tmp_path, test_data_path):
     run(cmd, capture_output=True, check=True)
     return output_path
 
+
 @pytest.fixture()
 def video_only_file(tmp_path):
-    """File containing multiple segments of louder and softer sounds."""
+    """File containing a single video stream test pattern."""
     output_path = tmp_path / "video_only.mp4"
     cmd = ["ffmpeg", "-f", "lavfi", "-i", "testsrc=duration=5.3:size=qcif:rate=10", output_path]
+    run(cmd, capture_output=True, check=True)
+    return output_path
+
+
+@pytest.fixture()
+def mp3_file_path(tmp_path):
+    """A single mp3 file. 2.5s tone, 2.5s silence."""
+    output_path = tmp_path / "mp3.mp3"
+    cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
+           "-filter_complex", "[0]apad=pad_dur=2.5[s0]", "-map", "[s0]", output_path]
     run(cmd, capture_output=True, check=True)
     return output_path

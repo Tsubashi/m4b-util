@@ -8,6 +8,7 @@ import pytest
 
 from m4b_util import split
 from m4b_util.helpers import ffprobe
+import testhelpers
 
 
 @contextmanager
@@ -23,68 +24,94 @@ def change_cwd(new_path):
 
 def _run_split_cmd(arg_list):
     """Patch the runtime arguments, then run the split command."""
-    argv_patch = ["m4b-util", "split-by-silence"]
+    argv_patch = ["m4b-util", "split"]
     argv_patch.extend(arg_list)
 
     with mock.patch("sys.argv", argv_patch):
         split.run()
 
 
-def _run_and_check_output(cmd_args, output_path, expected_files=None, check_func=None):
-    """Run the split command and check that expected output exists.
-
-    :param cmd_args: List of arguments to use to patch argv, as though called on a command line.
-    :param output_path: Path to the directory to check.
-    :param expected_files: Files we expect to find in output_path. If unspecified, defaults to ["segment_0000.mp3"].
-    :param check_func: Function for checking each file in expected_files. Defaults to asserting ffprobe can read them.
-
-    """
-    def default_check(input_file):
-        probe = ffprobe.run_probe(input_file)
-        # Add the file name so the error is more readable if the test fails.
-        assert input_file.name and probe
-
-    if not expected_files:
-        expected_files = ["segment_0000.mp3"]
-    if not check_func:
-        check_func = default_check
-    _run_split_cmd(cmd_args)
-    for file_name in expected_files:
-        file_path = output_path / file_name
-        check_func(file_path)
-
-    # Make sure there aren't any other files in the directory other than the filelist
-    for file in output_path.glob("*"):
-        assert (file.name in expected_files)
+@mock.patch("m4b_util.split.subcommand.SilenceFinder")
+def test_silence_modes(finder_mock):
+    """Run in silence-split mode."""
+    finder_mock = finder_mock()
+    finder_mock.find.return_value = None
+    for mode in ["s", "silence", "silences"]:
+        with pytest.raises(SystemExit) as e:
+            _run_split_cmd([mode, "Not-really-a-file"])
+        assert e.value.code == 1
+        finder_mock.find.assert_called_once()
+        finder_mock.reset_mock()
 
 
-def test_split_audio(tmp_path, silences_file_path):
-    """Split a file, default settings."""
+@mock.patch("m4b_util.split.subcommand.ChapterFinder")
+def test_chapter_modes(finder_mock):
+    """Run in chapter-split mode."""
+    finder_mock = finder_mock()
+    finder_mock.find.return_value = None
+    for mode in ["c", "chapter", "chapters"]:
+        with pytest.raises(SystemExit) as e:
+            _run_split_cmd([mode, "Not-really-a-file"])
+        assert e.value.code == 1
+        finder_mock.find.assert_called_once()
+        finder_mock.reset_mock()
+
+
+def test_unexpected_mode(capsys):
+    """Alert the user if an unexpected mode is requested."""
+    with pytest.raises(SystemExit) as e:
+        _run_split_cmd(["not-a-real-mode", "Not-really-a-file"])
+    assert e.value.code == 1
+    output = capsys.readouterr()
+    assert "Unexpected mode" in output.out
+
+
+
+def test_split_silence(tmp_path, silences_file_path):
+    """Split a file on silence, default settings."""
     output_path = tmp_path / "output"
     output_path.mkdir()
+    expected_files = [
+        "segment_0000.mp3",
+        "segment_0001.mp3",
+        "segment_0002.mp3",
+        "segment_0003.mp3",
+    ]
     with change_cwd(output_path):
-        _run_and_check_output([str(silences_file_path)], output_path)
+        _run_split_cmd(["silence", str(silences_file_path), "--silence-duration", "1.0" ])
+        testhelpers.check_output_folder(output_path, expected_files)
 
 
-def test_split_audio_set_outdir(tmp_path, silences_file_path):
-    """Split a file, setting the output directory."""
+def test_split_chapter(tmp_path, chaptered_audio_file_path):
+    """Split a file on silence, default settings."""
     output_path = tmp_path / "output"
-    _run_and_check_output([str(silences_file_path), "-o", str(output_path)], output_path)
+    output_path.mkdir()
+    expected_files = [
+        "segment_0000.mp3",
+        "segment_0001.mp3",
+        "segment_0002.mp3",
+        "segment_0003.mp3",
+        "segment_0004.mp3",
+        "segment_0005.mp3",
+        "segment_0006.mp3",
+        "segment_0007.mp3",
+    ]
+    with change_cwd(output_path):
+        _run_split_cmd(["chapter", str(chaptered_audio_file_path)])
+        testhelpers.check_output_folder(output_path, expected_files)
 
 
-def test_split_audio_start_end_times(tmp_path, silences_file_path):
+def test_split_audio_start_end_times(tmp_path, chaptered_audio_file_path):
     """Split a file, with start and end times specified."""
     output_path = tmp_path / "output"
-    _run_and_check_output(
-        cmd_args=[
-            str(silences_file_path),
+    _run_split_cmd([
+            "chapter",
+            str(chaptered_audio_file_path),
             "-o", str(output_path),
             "-s", "1.75",
             "-e", "5.03"
-        ],
-        output_path=output_path,
-        expected_files={"segment_0000.mp3": "bf0e18da559fcaba399a789f7542f6a9a59d947e"}
-    )
+        ])
+    testhelpers.check_output_folder(output_path)
 
 
 def test_split_audio_fail(tmp_path, capsys):
@@ -92,7 +119,7 @@ def test_split_audio_fail(tmp_path, capsys):
     fake_file_path = tmp_path / "not-a-real-file.m4a"
     open(fake_file_path, 'a').close()
     with pytest.raises(SystemExit) as e:
-        _run_split_cmd([str(fake_file_path), "-o", str(tmp_path)])
+        _run_split_cmd(["silence", str(fake_file_path), "-o", str(tmp_path)])
     assert (e.value.code == 1)
     output = capsys.readouterr()
     assert "Could not determine segment times." in output.out
@@ -102,9 +129,10 @@ def test_split_audio_duration(tmp_path, silences_file_path):
     """Adjust silence duration limits."""
     output_path = tmp_path / "output"
     cmd = [
+        "silence",
         str(silences_file_path),
         "-o", str(output_path),
-        "-d", "1.5"
+        "--silence-duration", "1.5"
     ]
     expected_files = (
         "segment_0000.mp3",
@@ -112,47 +140,53 @@ def test_split_audio_duration(tmp_path, silences_file_path):
         "segment_0002.mp3",
         "segment_0003.mp3",
     )
-    _run_and_check_output(cmd, output_path, expected_files)
+    _run_split_cmd(cmd)
+    testhelpers.check_output_folder(output_path, expected_files)
 
 
-def test_split_audio_threshold_lower(tmp_path, variable_volume_segments_file_path):
+def test_split_audio_threshold_lower(tmp_path, variable_volume_segments_file_path, capsys):
     """Adjust silence threshold limits to a threshold lower than any noise in the file."""
     output_path = tmp_path / "output"
-
-    # Start with a threshold lower than any noise in the file. This should give us two empty files
     cmd = [
+        "silence",
         str(variable_volume_segments_file_path),
         "-o", str(output_path),
-        "-t", "-45",
-        "-d", "1.5"
+        "--silence-threshold", "-45",
+        "--silence-duration", "1.5"
     ]
-    _run_and_check_output(cmd, output_path)
+    with pytest.raises(SystemExit) as e:
+        _run_split_cmd(cmd)
+    assert (e.value.code == 1)
+    output = capsys.readouterr()
+    assert "No segments found." in output.out
 
 
 def test_split_audio_threshold_higher(tmp_path, variable_volume_segments_file_path, capsys):
     """Adjust silence threshold limits to a threshold higher than any noise in the file."""
     output_path = tmp_path / "output"
     cmd = [
+        "silence",
         str(variable_volume_segments_file_path),
         "-o", str(output_path),
-        "-t", "-5",
-        "-d", "1.5"
+        "--silence-threshold", "-5",
+        "--silence-duration", "1.5"
     ]
     with pytest.raises(SystemExit) as e:
         _run_split_cmd(cmd)
     assert (e.value.code == 1)
     output = capsys.readouterr()
-    assert "No silence found." in output.out
+    assert "Not enough segments found." in output.out
 
 
 def test_split_audio_threshold(tmp_path, variable_volume_segments_file_path):
     """Adjust silence threshold limits to a threshold right between the two volume levels in the file."""
     output_path = tmp_path / "output"
     cmd = [
+        "silence",
         str(variable_volume_segments_file_path),
         "-o", str(output_path),
-        "-t", "-20",
-        "-d", "1.5"
+        "--silence-threshold", "-20",
+        "--silence-duration", "1.5"
     ]
     expected_files = (
         "segment_0000.mp3",
@@ -160,16 +194,18 @@ def test_split_audio_threshold(tmp_path, variable_volume_segments_file_path):
         "segment_0002.mp3",
         "segment_0003.mp3",
     )
-    _run_and_check_output(cmd, output_path, expected_files)
+    _run_split_cmd(cmd)
+    testhelpers.check_output_folder(output_path, expected_files)
 
 
 def test_split_audio_segment_pattern(tmp_path, silences_file_path):
     """Specify a non-default segment pattern."""
     output_path = tmp_path / "output"
     cmd = [
+        "silence",
         str(silences_file_path),
         "-o", str(output_path),
-        "-d", "1.5",
+        "--silence-duration", "1.5",
         "-p", "chunk_{:02d}.mp3",
     ]
     # Make sure the files we expect are there
@@ -179,4 +215,5 @@ def test_split_audio_segment_pattern(tmp_path, silences_file_path):
         "chunk_02.mp3",
         "chunk_03.mp3",
     )
-    _run_and_check_output(cmd, output_path, expected_files)
+    _run_split_cmd(cmd)
+    testhelpers.check_output_folder(output_path, expected_files)

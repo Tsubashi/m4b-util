@@ -84,37 +84,34 @@ class FFProgress:
         yield 100
 
 
-def run(cmd, task_name, progress=None):
+def run(cmd, task_name="Thinking", print_errors=True):
     """Run ffmpeg command and show progress.
 
     :param cmd: Command to run
     :param task_name: Text to print in front of progress bar
-    :param progress: An existing progress object. If not given, one will be created.
+    :param print_errors: Toggle whether to print error messages, or re-throw the exception.
 
     :return FFProgress instance
     """
-    progress_needs_stopping = False
-    if progress is None:
-        progress = Progress(SpinnerColumn(), *Progress.get_default_columns())
-        progress.start()
-        progress_needs_stopping = True
+    progress = Progress(SpinnerColumn(), *Progress.get_default_columns())
+    progress.start()
     ff = FFProgress(cmd)
-    current_percent = 0
 
     try:
         task = progress.add_task(f"[cyan]{task_name}", total=100)
         for percent in ff.run():
-            advance_amount = percent - current_percent
-            progress.update(task, advance=advance_amount)
-            current_percent = percent
+            progress.update(task, completed=percent)
     except RuntimeError as e:
-        progress.console.print("[bold red]Error:[/] Something went wrong with ffmpeg:")
-        progress.console.print(e)
-        progress.stop()
-        return None
-    progress.update(task, completed=100)
+        if print_errors:
+            progress.console.print("[bold red]Error:[/] Something went wrong with ffmpeg:")
+            progress.console.print(e)
+            progress.stop()
+            return None
+        else:
+            progress.stop()
+            raise e
 
-    if progress_needs_stopping:
-        progress.stop()
+    progress.update(task, completed=100)
+    progress.stop()
 
     return ff
