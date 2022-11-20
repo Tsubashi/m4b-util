@@ -10,7 +10,10 @@ from .Splitter import Splitter
 
 
 def _parse_split_silence_args():
-    parser = argparse.ArgumentParser(description='Split media into segments')
+    parser = argparse.ArgumentParser(
+        prog="m4b-util split",
+        description='Split media into segments.'
+    )
     parser.add_argument('mode', help='modes: s - silence, c - chapters')
     parser.add_argument('input_file', help='Input filename')
     parser.add_argument('-e', "--end-time", type=float, help='End time (seconds)')
@@ -19,7 +22,7 @@ def _parse_split_silence_args():
     parser.add_argument('-o', "--output-dir", type=str, help="Directory to place output.")
     parser.add_argument('-p', '--output-pattern', type=str, default="segment_{i:04d}.mp3",
                         help="Output filename pattern (e.g. `segment_{i:04d}.mp3`), use '{i}' for sequence and "
-                             "'{title}' for chapter title (if available).")
+                             "'{title}' for chapter title.")
     parser.add_argument('-s', "--start-time", type=float, help='Start time (seconds)')
     parser.add_argument("--silence-threshold", default=-35, type=int, help='Silence threshold (in dB)')
     parser.add_argument("--silence-duration", default=3.0, type=float, help='Silence duration')

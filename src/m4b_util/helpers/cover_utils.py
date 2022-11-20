@@ -15,6 +15,6 @@ def extract_cover(input_path, output_path):
         raise ValueError(f"Output extension must be one of {allowed_extensions}")
     cmd = ["ffmpeg", "-y", "-i", input_path, output_path]
     try:
-        ffprogress.run(cmd, print_errors=False)
+        ffprogress.run(cmd, task_name="Extracting Cover.", print_errors=False)
     except RuntimeError:
         print("[yellow]Warning:[/] Unable to extract cover.")
