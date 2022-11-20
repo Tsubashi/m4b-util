@@ -265,16 +265,26 @@ def test_add_chapter_info(m4a_path):
     assert probe.chapters[1]['tags']['title'] == "Silence"
 
 
-def test_add_cover(m4a_path, test_data_path):
+def test_add_cover(m4a_file_path, test_data_path):
     """Add chapter info to a file."""
-    file = m4a_path / "4 - 440Hz.m4a"
     b = Binder()
     b.cover = test_data_path / "cover.png"
-    out_file_path = b._add_cover(file)
+    out_file_path = b._add_cover(m4a_file_path)
 
     probe = ffprobe.run_probe(out_file_path)
     assert probe
     assert probe.streams[1]['codec_name'] == "png"
+
+
+def test_add_cover_to_non_file(tmp_path, test_data_path):
+    """Add chapter info to a file."""
+    file = tmp_path / "fake.m4a"
+    open(file, 'a').close()
+    b = Binder()
+    b.cover = test_data_path / "cover.png"
+    with pytest.raises(SystemExit) as e:
+        b._add_cover(file)
+    assert e.value.code == 1
 
 
 def test_ffmpeg_fail():
@@ -312,7 +322,7 @@ def test_bind_keep_temp_files(mp3_path, tmp_path, test_data_path, capsys):
     b = Binder()
     b.files = natsorted(mp3_path.glob("*"))
     b.cover = test_data_path / "cover.png"
-    b.keep_temp_fiyyles = True
+    b.keep_temp_files = True
     b.output_name = str(out_file_path)
     b.bind()
 

@@ -8,7 +8,7 @@ from tempfile import mkdtemp
 from rich import print
 from rich.status import Status
 
-from ..helpers import ffprobe, ffprogress
+from ..helpers import cover_utils, ffprobe, ffprogress
 from ..helpers.ParallelFFmpeg import ParallelFFmpeg
 
 
@@ -287,9 +287,11 @@ class Binder:
     def _add_cover(self, input_file):
         """Add a cover to an m4b."""
         output_file = self.temp_path / "covered.m4b"
-        cmd = ["ffmpeg", "-y", "-i", input_file, "-i", self.cover, "-map", "0:a", "-map", "1",
-               "-c", "copy", "-disposition:v:0", "attached_pic", output_file]
-        self._run_ffmpeg(cmd, "Adding Cover")
+        try:
+            cover_utils.add_cover(input_file, self.cover, output_file)
+        except RuntimeError as e:
+            print(str(e))
+            exit(1)
 
         # Cleanup, if applicable
         if not self.keep_temp_files:

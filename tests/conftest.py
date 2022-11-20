@@ -89,9 +89,19 @@ def video_only_file(tmp_path):
 
 
 @pytest.fixture()
+def m4a_file_path(tmp_path):
+    """A single m4a file. 2.5s tone, 2.5s silence."""
+    output_path = tmp_path / "single_file.m4a"
+    cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
+           "-filter_complex", "[0]apad=pad_dur=2.5[s0]", "-map", "[s0]", output_path]
+    run(cmd, capture_output=True, check=True)
+    return output_path
+
+
+@pytest.fixture()
 def mp3_file_path(tmp_path):
     """A single mp3 file. 2.5s tone, 2.5s silence."""
-    output_path = tmp_path / "mp3.mp3"
+    output_path = tmp_path / "single_file.mp3"
     cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
            "-filter_complex", "[0]apad=pad_dur=2.5[s0]", "-map", "[s0]", output_path]
     run(cmd, capture_output=True, check=True)
