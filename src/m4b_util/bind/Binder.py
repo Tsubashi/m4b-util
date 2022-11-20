@@ -171,7 +171,7 @@ class Binder:
 
             # Attempt to fill any missing metadata
             chapter_title = None
-            if probe.tags:
+            if probe.tags:  # pragma: no branch - None of our test files hit this, but some other audio formats might.
                 self.title = self.title or probe.tags.get('album')
                 self.author = self.author or probe.tags.get('artist')
                 self.date = self.date or probe.tags.get('date')
@@ -262,10 +262,7 @@ class Binder:
         # Cleanup, if applicable
         if not self.keep_temp_files:
             for file in self.temp_files:
-                # Inputs that were already converted to m4a will also appear in the temp_files list untouched.
-                # We shouldn't delete those.
-                if file not in self.files:
-                    file.unlink()
+                file.unlink()
 
         return output_file
 

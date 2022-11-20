@@ -33,7 +33,7 @@ def test_probe_data(mp3_path):
             'probe_score': 51,
             'size': '40557',
             'start_time': '0.023021',
-            'tags': {'encoder': 'Lavf59.27.100'}
+            'tags': {}
         },
         'streams': [{
             'avg_frame_rate': '0/0',
@@ -76,8 +76,9 @@ def test_probe_data(mp3_path):
             'time_base': '1/14112000'
         }]
     }
-    # Remove filename, since it changes each test.
+    # Remove items that can change between tests
     del probe.data['format']['filename']
+    del probe.data['format']['tags']['encoder']
     assert (probe.data == expected)
 
 

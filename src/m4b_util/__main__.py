@@ -16,8 +16,8 @@ def _print_version():
 
 # Set up the dictionary of commands. The values are tuples, first the function to run, second the description.
 allowed_commands = {
-    "bind": (bind, "Convert a folder of audio files into an m4b."),
-    "split-by-silence": (split, "Split a file into smaller files by silence."),
+    "bind": (bind.run, "Convert a folder of audio files into an m4b."),
+    "split": (split.run, "Split a file into smaller pieces."),
     "version": (_print_version, "Print the program's version.")
 }
 
@@ -37,7 +37,6 @@ def main():
     # Set up argparse
     parser = argparse.ArgumentParser(
         prog="m4b-util",
-        description='A Collection of utilities for interacting with m4b files.',
         usage=usage
     )
     parser.add_argument('command', help='Subcommand to run')

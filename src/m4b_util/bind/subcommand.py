@@ -1,4 +1,4 @@
-"""Primary components for bind mode."""
+"""Bind Command"""
 import argparse
 from pathlib import Path
 import sys
@@ -12,7 +12,7 @@ from .Binder import Binder
 def _parse_bind_args():
     """Parse all arguments."""
     parser = argparse.ArgumentParser(
-        description="Bind Mode. Takes a folder of audio files and outputs an m4b.",
+        description="Take a folder of audio files and output an m4b.",
         prog="m4b-util bind"
     )
     parser.add_argument('input_folder', type=str, help="The folder of input files.")
@@ -37,7 +37,7 @@ def _parse_bind_args():
     return parser.parse_args(sys.argv[2:])
 
 
-def bind():
+def run():
     """Entrypoint for bind subcommand."""
     binder = Binder()
     args = _parse_bind_args()

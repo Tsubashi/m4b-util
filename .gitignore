@@ -108,6 +108,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+!src/m4b_util/cover
+!tests/cover
 
 # Translations
 *.mo

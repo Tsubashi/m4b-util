@@ -9,6 +9,7 @@ import pytest
 
 from m4b_util.bind.Binder import Binder
 from m4b_util.helpers import ffprobe
+import testhelpers
 
 
 def _do_scan(binder, files, **kwargs):
@@ -284,6 +285,19 @@ def test_ffmpeg_fail():
     assert (e.value.code == 1)
 
 
+def test_ffmpeg_fail_keep_temp_files():
+    """Handle it when an ffmpeg run fails."""
+    b = Binder()
+    b.keep_temp_files = True
+    canary = Path(b.temp_path) / "canary"
+    open(canary, 'a').close()
+    with pytest.raises(SystemExit) as e:
+        b._run_ffmpeg(["ffmpeg", "-invalid_option"], "Make ffmpeg fail.")
+    assert (e.value.code == 1)
+    expected_files = ["canary"]
+    testhelpers.check_output_folder(b.temp_path, expected_files, check_func=testhelpers.assert_file_path_is_file)
+
+
 def test_bind_no_files(capsys):
     """Show an error when there are no files to bind."""
     b = Binder()
@@ -292,12 +306,13 @@ def test_bind_no_files(capsys):
     assert ("No input files found" in output.out)
 
 
-def test_bind_keep_temp_files(mp3_path, tmp_path, capsys):
+def test_bind_keep_temp_files(mp3_path, tmp_path, test_data_path, capsys):
     """Keep all temp files when asked."""
     out_file_path = tmp_path / "Book.m4b"
     b = Binder()
     b.files = natsorted(mp3_path.glob("*"))
-    b.keep_temp_files = True
+    b.cover = test_data_path / "cover.png"
+    b.keep_temp_fiyyles = True
     b.output_name = str(out_file_path)
     b.bind()
 
@@ -317,16 +332,11 @@ def test_bind_keep_temp_files(mp3_path, tmp_path, capsys):
         "8 - 880Hz.m4a",
         "long.m4a",
         "filelist",
+        "coverless.m4b",
         "finished.m4b",
         "ffmetadata",
     )
-    for file_name in expected_files:
-        file = b.temp_path / file_name
-        assert file.is_file()
-
-    # Make sure there aren't any other files in the directory other than the filelist
-    for file in b.temp_path.glob("*"):
-        assert (file.name in expected_files)
+    testhelpers.check_output_folder(b.temp_path, expected_files, check_func=testhelpers.assert_file_path_is_file)
 
 
 def test_bind_coverless(mp3_path, tmp_path):
