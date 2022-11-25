@@ -7,7 +7,7 @@ from m4b_util import cover
 from m4b_util.helpers import ffprobe
 
 
-def _run_split_cmd(arg_list):
+def _run_cover_cmd(arg_list):
     """Patch the runtime arguments, then run the split command."""
     argv_patch = ["m4b-util", "cover"]
     argv_patch.extend(arg_list)
@@ -19,7 +19,7 @@ def _run_split_cmd(arg_list):
 def test_extract(tmp_path, test_data_path, covered_audio_file):
     """Extract a cover."""
     cover_path = tmp_path / "out.png"
-    _run_split_cmd([str(covered_audio_file), "-e", str(cover_path)])
+    _run_cover_cmd([str(covered_audio_file), "-e", str(cover_path)])
     assert cover_path.is_file()
     assert filecmp.cmp(test_data_path / "cover.png", cover_path, shallow=False)
 
@@ -27,7 +27,7 @@ def test_extract(tmp_path, test_data_path, covered_audio_file):
 def test_apply(test_data_path, m4a_file_path):
     """Add a new cover."""
     cover_path = test_data_path / "cover.png"
-    _run_split_cmd([str(m4a_file_path), "-a", str(cover_path)])
+    _run_cover_cmd([str(m4a_file_path), "-a", str(cover_path)])
     probe = ffprobe.run_probe(m4a_file_path)
     assert probe
     cover_streams = [stream for stream in probe.data.get('streams', list()) if stream.get('codec_name') == 'png']
@@ -40,7 +40,7 @@ def test_overwrite(tmp_path, test_data_path, covered_audio_file):
     new_cover_path = test_data_path / "cover2.png"
     original_file = tmp_path / "original.m4a"
     shutil.copy(covered_audio_file, original_file)
-    _run_split_cmd([str(covered_audio_file), "-a", str(new_cover_path)])
+    _run_cover_cmd([str(covered_audio_file), "-a", str(new_cover_path)])
     probe = ffprobe.run_probe(covered_audio_file)
     assert probe
     cover_streams = [stream for stream in probe.data.get('streams', list()) if stream.get('codec_name') == 'png']
