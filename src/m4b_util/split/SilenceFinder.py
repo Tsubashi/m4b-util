@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 
 from m4b_util.helpers import ffprogress
-from .SegmentData import SegmentData
+from m4b_util.helpers.SegmentData import SegmentData
 
 
 @dataclass

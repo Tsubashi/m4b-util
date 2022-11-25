@@ -1,7 +1,7 @@
 from unittest import mock
 
-from m4b_util.split import SegmentData, Splitter
-from m4b_util.helpers import ffprobe
+from m4b_util.split import Splitter
+from m4b_util.helpers import ffprobe, SegmentData
 import testhelpers
 
 

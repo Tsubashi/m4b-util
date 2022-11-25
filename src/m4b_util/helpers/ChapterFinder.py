@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from m4b_util.helpers import ffprobe
-from .SegmentData import SegmentData
+from m4b_util.helpers.SegmentData import SegmentData
 
 
 @dataclass

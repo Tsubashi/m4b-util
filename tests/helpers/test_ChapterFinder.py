@@ -1,4 +1,4 @@
-from m4b_util.split import ChapterFinder, SegmentData
+from m4b_util.helpers import ChapterFinder, SegmentData
 
 
 def test_find_chapters(chaptered_audio_file_path):

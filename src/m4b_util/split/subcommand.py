@@ -5,7 +5,7 @@ import sys
 from rich import print
 
 from .SilenceFinder import SilenceFinder
-from .ChapterFinder import ChapterFinder
+from m4b_util.helpers.ChapterFinder import ChapterFinder
 from .Splitter import Splitter
 
 

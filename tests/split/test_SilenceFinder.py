@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from m4b_util.split import SegmentData, SilenceFinder
+from m4b_util.split import SilenceFinder
+from m4b_util.helpers import SegmentData
 
 
 fake_input = Path("Not-a-real-file")
