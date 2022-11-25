@@ -9,7 +9,7 @@ from rich import print
 from .Binder import Binder
 
 
-def _parse_bind_args():
+def _parse_args():
     """Parse all arguments."""
     parser = argparse.ArgumentParser(
         description="Take a folder of audio files and output an m4b.",
@@ -40,7 +40,7 @@ def _parse_bind_args():
 def run():
     """Entrypoint for bind subcommand."""
     binder = Binder()
-    args = _parse_bind_args()
+    args = _parse_args()
 
     # Make sure the output directory exists, if it was specified.
     if args.output_dir and not Path(args.output_dir).is_dir():

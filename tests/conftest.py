@@ -56,6 +56,16 @@ def mp3_path(tmp_path):
 
 
 @pytest.fixture()
+def mp3_file_path(tmp_path):
+    """A single mp3 file. 2.5s tone, 2.5s silence."""
+    output_path = tmp_path / "single_file.mp3"
+    cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
+           "-filter_complex", "[0]apad=pad_dur=2.5[s0]", "-map", "[s0]", output_path]
+    run(cmd, capture_output=True, check=True)
+    return output_path
+
+
+@pytest.fixture()
 def m4a_path(tmp_path):
     """Path to a temporary folder with a number of short m4a files."""
     m4a_path = tmp_path / "m4a"
@@ -63,6 +73,16 @@ def m4a_path(tmp_path):
     _generate_tone_files(m4a_path, "m4a")
 
     return m4a_path
+
+
+@pytest.fixture()
+def m4a_file_path(tmp_path):
+    """A single m4a file. 2.5s tone, 2.5s silence."""
+    output_path = tmp_path / "single_file.m4a"
+    cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
+           "-filter_complex", "[0]apad=pad_dur=2.5[s0]", "-map", "[s0]", output_path]
+    run(cmd, capture_output=True, check=True)
+    return output_path
 
 
 @pytest.fixture()
@@ -84,25 +104,5 @@ def video_only_file(tmp_path):
     """File containing a single video stream test pattern."""
     output_path = tmp_path / "video_only.mp4"
     cmd = ["ffmpeg", "-f", "lavfi", "-i", "testsrc=duration=5.3:size=qcif:rate=10", output_path]
-    run(cmd, capture_output=True, check=True)
-    return output_path
-
-
-@pytest.fixture()
-def m4a_file_path(tmp_path):
-    """A single m4a file. 2.5s tone, 2.5s silence."""
-    output_path = tmp_path / "single_file.m4a"
-    cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
-           "-filter_complex", "[0]apad=pad_dur=2.5[s0]", "-map", "[s0]", output_path]
-    run(cmd, capture_output=True, check=True)
-    return output_path
-
-
-@pytest.fixture()
-def mp3_file_path(tmp_path):
-    """A single mp3 file. 2.5s tone, 2.5s silence."""
-    output_path = tmp_path / "single_file.mp3"
-    cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
-           "-filter_complex", "[0]apad=pad_dur=2.5[s0]", "-map", "[s0]", output_path]
     run(cmd, capture_output=True, check=True)
     return output_path

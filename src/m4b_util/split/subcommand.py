@@ -9,7 +9,7 @@ from .ChapterFinder import ChapterFinder
 from .Splitter import Splitter
 
 
-def _parse_split_silence_args():
+def _parse_args():
     parser = argparse.ArgumentParser(
         prog="m4b-util split",
         description='Split media into segments.'
@@ -35,7 +35,7 @@ def _parse_split_silence_args():
 
 def run():
     """Split an audio file into pieces, based on silence."""
-    args = _parse_split_silence_args()
+    args = _parse_args()
     input_path = Path(args.input_file)
     segment_list = None
 
