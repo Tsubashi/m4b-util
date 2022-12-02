@@ -1,3 +1,3 @@
 """A Package full of helper functions."""
-from .ChapterFinder import ChapterFinder  # noqa: F401
-from .SegmentData import SegmentData  # noqa: F401
+from .audiobook import Audiobook  # noqa: F401
+from .segment_data import SegmentData  # noqa: F401

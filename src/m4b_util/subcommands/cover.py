@@ -5,7 +5,7 @@ import sys
 from tempfile import TemporaryDirectory
 
 
-from ..helpers import cover_utils
+from m4b_util.helpers import cover_utils
 
 
 def _parse_args():

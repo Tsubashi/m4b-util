@@ -3,8 +3,11 @@ import filecmp
 import shutil
 from unittest import mock
 
-from m4b_util import cover
+import pytest
+
+from m4b_util.subcommands import cover
 from m4b_util.helpers import ffprobe
+import testhelpers
 
 
 def _run_cover_cmd(arg_list):
@@ -47,3 +50,13 @@ def test_overwrite(tmp_path, test_data_path, covered_audio_file):
     assert len(cover_streams) == 1
     assert cover_streams[0].get('disposition', {}).get("attached_pic") == 1
     assert not filecmp.cmp(original_file, covered_audio_file, shallow=False)
+
+
+def test_no_task_given(capsys):
+    """Alert the user if no tasks are specified."""
+    with testhelpers.expect_exit_with_output(
+            capsys,
+            expected_code=2,
+            expected_text="At least one task must be specified"
+    ):
+        _run_cover_cmd(["Not-a-real.file"])

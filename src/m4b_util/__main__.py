@@ -4,7 +4,7 @@ import sys
 
 from rich import print
 
-from . import bind, split, cover
+from .subcommands import bind, split, slide, cover
 from .__version__ import version
 
 
@@ -19,6 +19,7 @@ allowed_commands = {
     "cover": (cover.run, "Manipulate audio file cover images."),
     "bind": (bind.run, "Convert a folder of audio files into an m4b."),
     "split": (split.run, "Split a file into smaller pieces."),
+    "slide": (slide.run, "Slide chapter segments up or down."),
     "version": (_print_version, "Print the program's version.")
 }
 

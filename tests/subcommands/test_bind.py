@@ -9,7 +9,7 @@ def _run_bind_cmd(arg_list):
     argv_patch.extend(arg_list)
 
     with patch("sys.argv", argv_patch):
-        m4b_util.bind.run()
+        m4b_util.subcommands.bind.run()
 
 
 def test_show_order(mp3_path, capsys):
@@ -39,7 +39,7 @@ def test_nonexistent_output_dir(capsys):
 
 def test_bind_wav_defaults(wav_path, tmp_path, capsys):
     """Bind a folder of wav files into and audiobook."""
-    _run_bind_cmd([str(wav_path), "-e", "wav", "-o", str(tmp_path)])
+    _run_bind_cmd([str(wav_path), "-o", str(tmp_path)])
 
     # Check for output
     output_path = tmp_path / "None - None.m4b"
