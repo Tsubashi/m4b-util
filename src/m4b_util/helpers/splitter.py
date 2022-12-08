@@ -1,6 +1,6 @@
 """The Splitter Class."""
-from m4b_util.helpers.parallel_ffmpeg import ParallelFFmpeg
 from m4b_util.helpers import cover_utils
+from m4b_util.helpers.parallel_ffmpeg import ParallelFFmpeg
 
 
 def split(
@@ -37,7 +37,3 @@ def split(
     # Process splits in parallel
     p = ParallelFFmpeg(f"Splitting '{input_path.name}'")
     p.process(tasks)
-
-
-
-

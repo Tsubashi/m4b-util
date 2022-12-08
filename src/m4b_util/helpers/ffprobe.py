@@ -71,12 +71,10 @@ def get_file_duration(file, decode_duration=False):
         # Set the duration if we found any
         if time_match:
             match = time_match.groupdict()
-            duration = (
-                    (int(match["hour"]) * 60 * 60)
-                    + (int(match["min"]) * 60)
-                    + int(match["sec"])
-                    + (int(match["ms"]) / 100)
-            )
+            duration = ((int(match["hour"]) * 60 * 60)
+                        + (int(match["min"]) * 60)
+                        + int(match["sec"])
+                        + (int(match["ms"]) / 100))
         else:
             print(f"[bold yellow]Warning:[/] Unable to find duration of '[bold white]{file.name}[/]' "
                   "during decoding. Falling back to metadata.")

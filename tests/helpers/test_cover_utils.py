@@ -31,7 +31,7 @@ def test_extract_cover_non_covered_file(tmp_path, mp3_file_path, capsys):
 
 
 def test_add_cover(tmp_path, test_data_path, m4a_file_path):
-    """A a cover image to a file"""
+    """Add a cover image to a file."""
     out_file_path = tmp_path / "covered.m4a"
     cover_utils.add_cover(m4a_file_path, test_data_path / "cover.png", out_file_path)
 

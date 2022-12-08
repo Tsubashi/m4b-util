@@ -30,14 +30,14 @@ def expected_data():
                          '[CHAPTER]\nTIMEBASE=1/1000\nSTART=35000\nEND=40000\ntitle=8\n'
                          ),
             "chapters": [
-                 SegmentData(start_time=00., end_time=05., id=1, title="1", backing_file=Path("1 - 110Hz")),
-                 SegmentData(start_time=05., end_time=10., id=2, title="2", backing_file=Path("2 - 220Hz")),
-                 SegmentData(start_time=10., end_time=15., id=3, title="3", backing_file=Path("3 - 330Hz")),
-                 SegmentData(start_time=15., end_time=20., id=4, title="4", backing_file=Path("4 - 440Hz")),
-                 SegmentData(start_time=20., end_time=25., id=5, title="5", backing_file=Path("5 - 550Hz")),
-                 SegmentData(start_time=25., end_time=30., id=6, title="6", backing_file=Path("6 - 660Hz")),
-                 SegmentData(start_time=30., end_time=35., id=7, title="7", backing_file=Path("7 - 770Hz")),
-                 SegmentData(start_time=35., end_time=40., id=8, title="8", backing_file=Path("8 - 880Hz"))
+                SegmentData(start_time=00., end_time=05., id=1, title="1", backing_file=Path("1 - 110Hz")),
+                SegmentData(start_time=05., end_time=10., id=2, title="2", backing_file=Path("2 - 220Hz")),
+                SegmentData(start_time=10., end_time=15., id=3, title="3", backing_file=Path("3 - 330Hz")),
+                SegmentData(start_time=15., end_time=20., id=4, title="4", backing_file=Path("4 - 440Hz")),
+                SegmentData(start_time=20., end_time=25., id=5, title="5", backing_file=Path("5 - 550Hz")),
+                SegmentData(start_time=25., end_time=30., id=6, title="6", backing_file=Path("6 - 660Hz")),
+                SegmentData(start_time=30., end_time=35., id=7, title="7", backing_file=Path("7 - 770Hz")),
+                SegmentData(start_time=35., end_time=40., id=8, title="8", backing_file=Path("8 - 880Hz"))
             ],
             "chapters_doubled": [
                 SegmentData(start_time=00., end_time=05., id=1, title="1", backing_file=Path("1 - 110Hz")),

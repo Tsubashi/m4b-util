@@ -62,4 +62,3 @@ def expect_exit_with_output(capsys, expected_text, expected_code=1):
         yield
     output = capsys.readouterr()
     assert (expected_text in output.out) or (expected_text in output.err)
-

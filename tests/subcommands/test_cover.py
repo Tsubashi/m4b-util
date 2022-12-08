@@ -1,13 +1,12 @@
-"""Cover Subcommand Tests"""
+"""Cover Subcommand Tests."""
 import filecmp
 import shutil
 from unittest import mock
 
-import pytest
-
-from m4b_util.subcommands import cover
-from m4b_util.helpers import ffprobe
 import testhelpers
+
+from m4b_util.helpers import ffprobe
+from m4b_util.subcommands import cover
 
 
 def _run_cover_cmd(arg_list):

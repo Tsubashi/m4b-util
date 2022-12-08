@@ -34,5 +34,3 @@ def run():
             covered_book = Path(tmp_path) / "covered.m4b"
             cover_utils.add_cover(Path(args.input_file), Path(args.apply_cover), covered_book)
             shutil.move(covered_book, args.input_file)
-
-

@@ -1,9 +1,8 @@
 """Test the Bind subcommand."""
 from unittest.mock import patch
 
-import pytest
-
 import testhelpers
+
 from m4b_util.__main__ import allowed_commands, main as m4b_main
 
 

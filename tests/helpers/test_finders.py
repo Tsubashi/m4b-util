@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 from m4b_util.helpers import SegmentData
 from m4b_util.helpers.finders import find_chapters, find_silence
 

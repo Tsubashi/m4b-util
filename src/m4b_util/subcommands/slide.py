@@ -5,7 +5,6 @@ import sys
 from rich import print
 
 from ..helpers import Audiobook
-from ..helpers.finders import find_chapters
 
 
 def _parse_args():
@@ -22,7 +21,7 @@ def _parse_args():
 def _slide_segment_list(segments, duration):
     """Slide all segments in a list in the indicated direction. Will not overshoot final or initial values."""
     if len(segments) == 0:
-        return segments # No values, so no slide
+        return segments  # No values, so no slide
     start_time = segments[0].start_time
     end_time = segments[-1].end_time
     duration = float(duration)
@@ -49,5 +48,3 @@ def run():
     else:
         print("[red]Error:[/] No chapters found!")
         exit(1)
-
-

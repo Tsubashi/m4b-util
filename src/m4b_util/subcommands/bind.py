@@ -1,9 +1,8 @@
-"""Bind Command"""
+"""Bind Command."""
 import argparse
 from pathlib import Path
 import sys
 
-from natsort import natsorted
 from rich import print
 
 from m4b_util.helpers import Audiobook

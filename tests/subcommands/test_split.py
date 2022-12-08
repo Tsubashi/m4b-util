@@ -4,10 +4,9 @@ import os
 from pathlib import Path
 from unittest import mock
 
-import pytest
+import testhelpers
 
 from m4b_util.subcommands import split
-import testhelpers
 
 
 @contextmanager
@@ -69,7 +68,7 @@ def test_split_silence(tmp_path, silences_file_path):
         "segment_0003.mp3",
     ]
     with change_cwd(output_path):
-        _run_split_cmd(["silence", str(silences_file_path), "--silence-duration", "1.0" ])
+        _run_split_cmd(["silence", str(silences_file_path), "--silence-duration", "1.0"])
         testhelpers.check_output_folder(output_path, expected_files)
 
 
@@ -96,12 +95,12 @@ def test_split_audio_start_end_times(tmp_path, chaptered_audio_file_path):
     """Split a file, with start and end times specified."""
     output_path = tmp_path / "output"
     _run_split_cmd([
-            "chapter",
-            str(chaptered_audio_file_path),
-            "-o", str(output_path),
-            "-s", "1.75",
-            "-e", "5.03"
-        ])
+        "chapter",
+        str(chaptered_audio_file_path),
+        "-o", str(output_path),
+        "-s", "1.75",
+        "-e", "5.03"
+    ])
     testhelpers.check_output_folder(output_path)
 
 

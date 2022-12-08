@@ -5,10 +5,9 @@ from subprocess import run
 from tempfile import TemporaryDirectory
 
 from natsort import natsorted
-import pytest
+import testhelpers
 
 from m4b_util.helpers import Audiobook, ffprobe, SegmentData
-import testhelpers
 
 
 def _do_dir_scan(book, in_dir, use_filenames=False, decode_durations=False, **kwargs):
@@ -440,7 +439,7 @@ def test_rebind_single_file_selections(chaptered_audio_file_path, tmp_path):
     """Create an audiobook out of selections from a single file."""
     b = Audiobook()
     b.add_chapters_from_chaptered_file(chaptered_audio_file_path)
-    del(b.chapters[2])
+    del b.chapters[2]
     out_path = tmp_path / "selections.m4b"
     b.bind(out_path)
     # Verify output
@@ -469,7 +468,7 @@ def test_rebind_single_file_selections(chaptered_audio_file_path, tmp_path):
 
 
 def test_bad_cover(tmp_path, m4a_path):
-    """Throw an error if we can't add the specified cover"""
+    """Throw an error if we can't add the specified cover."""
     out_file_path = tmp_path / "Book.m4b"
     cover_path = tmp_path / "not-really-a-cover.png"
     open(cover_path, 'a').close()
@@ -528,7 +527,7 @@ def test_bind_non_backed_segment(tmp_path, mp3_path, capsys):
     # Remove backing files before we bind.
     for chapter in b.chapters:
         chapter.backing_file = None
-    assert b.bind(out_file_path) == False
+    assert b.bind(out_file_path) is False
     output = capsys.readouterr()
     assert "Cannot bind a non-backed segment." in output.out
 

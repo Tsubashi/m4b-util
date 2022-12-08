@@ -4,8 +4,8 @@ import sys
 
 from rich import print
 
-from ..helpers.finders import find_chapters, find_silence
 from ..helpers import splitter
+from ..helpers.finders import find_chapters, find_silence
 
 
 def _parse_args():
@@ -82,5 +82,3 @@ def run():
         output_pattern=args.output_pattern,
         segment_list=segment_list
     )
-
-

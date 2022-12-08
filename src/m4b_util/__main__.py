@@ -4,8 +4,8 @@ import sys
 
 from rich import print
 
-from .subcommands import bind, split, slide, cover
 from .__version__ import version
+from .subcommands import bind, cover, slide, split
 
 
 def _print_version():

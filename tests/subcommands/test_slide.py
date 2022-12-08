@@ -2,12 +2,11 @@
 import shutil
 from unittest import mock
 
-import pytest
-
 import testhelpers
-from m4b_util.subcommands.slide import _slide_segment_list, run
+
 from m4b_util.helpers import SegmentData
 from m4b_util.helpers.finders import find_chapters
+from m4b_util.subcommands import slide
 
 
 def _run_slide_cmd(arg_list):
@@ -16,7 +15,7 @@ def _run_slide_cmd(arg_list):
     argv_patch.extend(arg_list)
 
     with mock.patch("sys.argv", argv_patch):
-        run()
+        slide.run()
 
 
 def test_slide_forward(tmp_path, chaptered_audio_file_path):
@@ -81,7 +80,7 @@ def test_slide_segment_list_forward():
         SegmentData(id=2, start_time=10.5, end_time=15.5),
         SegmentData(id=3, start_time=15.5, end_time=20.0),
     ]
-    actual = _slide_segment_list(initial, 0.5)
+    actual = slide._slide_segment_list(initial, 0.5)
     assert actual == expected
 
 
@@ -99,7 +98,7 @@ def test_slide_segment_list_backward():
         SegmentData(id=2, start_time=09.5, end_time=14.5),
         SegmentData(id=3, start_time=14.5, end_time=20.0),
     ]
-    actual = _slide_segment_list(initial, -0.5)
+    actual = slide._slide_segment_list(initial, -0.5)
     assert actual == expected
 
 
@@ -107,10 +106,10 @@ def test_zero_segments():
     """Return immediately if presented with a zero segment list."""
     initial = []
     expected = []
-    actual = _slide_segment_list(initial, 1)
+    actual = slide._slide_segment_list(initial, 1)
     assert initial == expected == actual
 
-    
+
 def test_no_chapters(tmp_path, silences_file_path, capsys):
     """Alert the user if there are no chapters to slide."""
     original_file = tmp_path / "original.m4b"

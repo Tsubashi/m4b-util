@@ -5,34 +5,8 @@ from m4b_util.helpers import ffprobe, ffprogress
 from m4b_util.helpers.segment_data import SegmentData
 
 
-def find_silence(input_path, start_time=None, end_time=None, silence_duration=3.0, silence_threshold=-35):
-    """Finds silence in a file and generates a list of SegmentData's representing the non-silence portions."""
-    # Run ffmpeg's silencedetect filter
-    cmd = ["ffmpeg"]
-    if start_time:
-        cmd.extend(["-ss", str(start_time)])
-    else:
-        # If start_time isn't set, then we don't need it in the command, but we do need a default later.
-        start_time = 0.0
-    cmd.extend(["-i", input_path])
-    if end_time:
-        end_time_dur = end_time - start_time
-        cmd.extend(["-t", str(end_time_dur)])
-    cmd.extend([
-        "-filter_complex",
-        f"[0]silencedetect=d={silence_duration}:n={silence_threshold}dB[s0]",
-        "-map", "[s0]",
-        "-f", "null",
-        "-"
-    ])
-    ff = ffprogress.run(cmd, "Detecting Silence")
-
-    # Check to see if ffmpeg exited abnormally
-    lines = []
-    if ff:
-        lines = ff.output.splitlines()
-
-    # Parse the output
+def _parse_silence_lines(lines, start_time, end_time):
+    """Parse the output of the silencedetect filter."""
     silence_start_re = re.compile(r' silence_start: (?P<start>[0-9]+(\.?[0-9]*))$')
     silence_end_re = re.compile(r' silence_end: (?P<end>[0-9]+(\.?[0-9]*)) ')
     total_duration_re = re.compile(
@@ -73,7 +47,37 @@ def find_silence(input_path, start_time=None, end_time=None, silence_duration=3.
         # Finished with non-silence.
         segment_ends.append(duration)
 
-    times = list(zip(segment_starts, segment_ends))
+    return list(zip(segment_starts, segment_ends))
+
+
+def find_silence(input_path, start_time=None, end_time=None, silence_duration=3.0, silence_threshold=-35):
+    """Finds silence in a file and generates a list of SegmentData's representing the non-silence portions."""
+    # Run ffmpeg's silencedetect filter
+    cmd = ["ffmpeg"]
+    if start_time:
+        cmd.extend(["-ss", str(start_time)])
+    else:
+        # If start_time isn't set, then we don't need it in the command, but we do need a default later.
+        start_time = 0.0
+    cmd.extend(["-i", input_path])
+    if end_time:
+        end_time_dur = end_time - start_time
+        cmd.extend(["-t", str(end_time_dur)])
+    cmd.extend([
+        "-filter_complex",
+        f"[0]silencedetect=d={silence_duration}:n={silence_threshold}dB[s0]",
+        "-map", "[s0]",
+        "-f", "null",
+        "-"
+    ])
+    ff = ffprogress.run(cmd, "Detecting Silence")
+
+    # Check to see if ffmpeg exited abnormally
+    lines = []
+    if ff:
+        lines = ff.output.splitlines()
+
+    times = _parse_silence_lines(lines, start_time, end_time)
 
     # Generate SegmentData list
     retval = list()

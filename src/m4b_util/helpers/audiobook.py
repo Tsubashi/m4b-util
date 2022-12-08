@@ -1,16 +1,16 @@
 from dataclasses import dataclass, field
-from natsort import natsorted
 from pathlib import Path
 import shutil
 from tempfile import mkdtemp
 
+from natsort import natsorted
 from rich import print
 from rich.status import Status
 
 from . import cover_utils, ffprobe, ffprogress
-from .segment_data import SegmentData
-from .parallel_ffmpeg import ParallelFFmpeg
 from .finders import find_chapters
+from .parallel_ffmpeg import ParallelFFmpeg
+from .segment_data import SegmentData
 
 
 @dataclass
@@ -20,7 +20,7 @@ class Audiobook:
     # Set duration to a big number, (hopefully larger than our actual duration)
     # just in case we try to write chapters without knowing the final duration.
     duration: float = 1000000000
-    chapters: list = field(default_factory=lambda : [])
+    chapters: list = field(default_factory=lambda: [])
     cover: str = None
     date: str = None
     output_name: str = None
@@ -82,6 +82,7 @@ class Audiobook:
         return natsorted(Path(input_dir).glob("*"))
 
     def add_chapters_from_chaptered_file(self, input_path):
+        """Add chapters from a single file."""
         # Read the new chapters, shifting the times forward to match any segments we already have.
         time_shift = 0.0
         id_shift = 0
@@ -208,7 +209,7 @@ class Audiobook:
             if segment.backing_file is None:
                 s_id = segment.id or ""
                 print(f"[yellow]Info:[/] Segment {s_id}: '{segment.title}' does not point to a file.")
-                print(f"[bold red]Error:[/] Cannot bind a non-backed segment.")
+                print("[bold red]Error:[/] Cannot bind a non-backed segment.")
                 return False
 
             # Keep info on the first file we see

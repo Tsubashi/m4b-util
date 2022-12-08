@@ -122,7 +122,7 @@ def chaptered_audio_file_path(tmp_path):
         "[CHAPTER]\nTIMEBASE=1/1000\nSTART=12500\nEND=14999\ntitle=330Hz - Soft\n"
         "[CHAPTER]\nTIMEBASE=1/1000\nSTART=15000\nEND=17499\ntitle=440Hz - Loud\n"
         "[CHAPTER]\nTIMEBASE=1/1000\nSTART=17500\nEND=19999\ntitle=440Hz - Soft\n"
-        )
+    )
     metadata_file = tmp_path / "ffmetadata"
     with open(metadata_file, 'w') as f:
         print(metadata, file=f)

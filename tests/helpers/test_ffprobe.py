@@ -1,6 +1,4 @@
 """ffprobe tests."""
-import subprocess
-
 import pytest
 
 from m4b_util.helpers import ffprobe
