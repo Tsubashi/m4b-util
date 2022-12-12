@@ -87,8 +87,8 @@ def find_silence(input_path, start_time=None, end_time=None, silence_duration=3.
             end_time=segment_end,
             id=i,
             backing_file=input_path,
-            backing_file_start_time=segment_start,
-            backing_file_end_time=segment_end
+            file_start_time=segment_start,
+            file_end_time=segment_end
         ))
     return retval
 
@@ -113,7 +113,7 @@ def find_chapters(input_path, start_time=None, end_time=None):
                 id=chapter['id'],
                 title=title,
                 backing_file=input_path,
-                backing_file_start_time=float(chapter['start_time']),
-                backing_file_end_time=float(chapter['end_time'])
+                file_start_time=float(chapter['start_time']),
+                file_end_time=float(chapter['end_time'])
             ))
     return chapter_list

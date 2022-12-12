@@ -14,8 +14,8 @@ class SegmentData:
     id: int = None
     title: str = None
     backing_file: Path = None
-    backing_file_start_time: float = None
-    backing_file_end_time: float = None
+    file_start_time: float = None
+    file_end_time: float = None
 
     def __setattr__(self, key, value):
         """Make sure all the 'time' variables are rounded to three decimal places (miliseconds)."""

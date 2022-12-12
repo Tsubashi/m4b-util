@@ -249,12 +249,12 @@ class Audiobook:
 
             # Write the FFMPEG command
             cmd = ["ffmpeg"]
-            if segment.backing_file_start_time:
-                cmd.extend(["-ss", str(segment.backing_file_start_time)])
+            if segment.file_start_time:
+                cmd.extend(["-ss", str(segment.file_start_time)])
             cmd.extend(["-i", file])
-            if segment.backing_file_end_time:
-                start_time = segment.backing_file_start_time or 0.0
-                end_time_dur = segment.backing_file_end_time - start_time
+            if segment.file_end_time:
+                start_time = segment.file_start_time or 0.0
+                end_time_dur = segment.file_end_time - start_time
                 cmd.extend(["-t", str(end_time_dur)])
             if segment.title:
                 cmd.extend(["-metadata", f"title={segment.title}"])
