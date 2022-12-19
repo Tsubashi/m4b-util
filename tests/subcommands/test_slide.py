@@ -62,7 +62,7 @@ def test_slide_forward(tmp_path, chaptered_audio_file_path):
 
 def test_slide_backward(tmp_path, chaptered_audio_file_path):
     """Slide all chapters backwards, preserving start and end times."""
-    cmd =[str(chaptered_audio_file_path), "-d", "-1.0"]
+    cmd = [str(chaptered_audio_file_path), "-d", "-1.0"]
     expected = [
         SegmentData(id=0, title="110Hz - Loud",
                     start_time=00.0, file_start_time=00.0,
@@ -235,7 +235,7 @@ def test_no_chapters(tmp_path, silences_file_path, capsys):
 
 def test_trim_start(tmp_path, chaptered_audio_file_path):
     """Trim a length from the beginning of a file."""
-    cmd =[str(chaptered_audio_file_path), "--trim-start", "3.6"]
+    cmd = [str(chaptered_audio_file_path), "--trim-start", "3.6"]
     expected = [
         SegmentData(id=0, title="110Hz - Soft",
                     start_time=00.0, file_start_time=00.0,

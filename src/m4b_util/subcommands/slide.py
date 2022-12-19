@@ -19,6 +19,33 @@ def _parse_args():
     return parser.parse_args(sys.argv[2:])
 
 
+def _slide(segments, duration):
+    """Add duration to all relevant fields each segment."""
+    for segment in segments:
+        segment.start_time = segment.start_time + duration
+        segment.end_time = segment.end_time + duration
+        if segment.file_start_time is not None:
+            segment.file_start_time = segment.file_start_time + duration
+        if segment.file_end_time is not None:
+            segment.file_end_time = segment.file_end_time + duration
+
+
+def _check_overshoot(segments, start_time, end_time, file_start_time, file_end_time):
+    """Remove any segments that exist outside the start and end time."""
+    for segment in segments.copy():
+        if segment.start_time > end_time \
+                or segment.end_time <= 0 \
+                or segment.end_time < start_time:
+            segments.remove(segment)
+            continue
+        # Don't do any operations on backing_file info if one of the needed vars is None.
+        if not None in (segment.file_start_time, segment.file_end_time, file_start_time, file_end_time):
+            if segment.file_start_time > file_end_time \
+                    or segment.file_end_time <= 0 \
+                    or segment.file_end_time < file_start_time:
+                segments.remove(segment)
+
+
 def _slide_segments(segments, duration):
     """Slide all segments in a list in the indicated direction. Will not overshoot final or initial values.
 
@@ -27,48 +54,24 @@ def _slide_segments(segments, duration):
     :return: List of segments, slid by duration.
     """
     # Check preconditions
-    backing_times = True
     if len(segments) == 0:
         return segments  # No values, so no slide
     if duration == 0:
         return segments  # No slide duration, no slide needed
-    for segment in segments:
-        # Check if any backing file info is missing. If so, turn off backing_times.
-        if segment.file_start_time is None or segment.file_end_time is None:
-            backing_times = False
-            break
 
     # Set initial state
     start_time = segments[0].start_time
     end_time = segments[-1].end_time
     duration = float(duration)
-    file_start_time = 0.0
-    file_end_time = 10000000000.
-    if backing_times:
-        file_start_time = segments[0].file_start_time
-        file_end_time = segments[-1].file_end_time
+    file_start_time = segments[0].file_start_time
+    file_end_time = segments[-1].file_end_time
 
     # Slide all segments
-    for segment in segments:
-        segment.start_time = segment.start_time + duration
-        segment.end_time = segment.end_time + duration
-        if backing_times:
-            segment.file_start_time = segment.file_start_time + duration
-            segment.file_end_time = segment.file_end_time + duration
+    _slide(segments, duration)
 
-    # Remove any overshot chapters
+    # Check for overshoot
     original_length = len(segments)
-    for segment in segments.copy():
-        if segment.start_time > end_time \
-                or segment.end_time <= 0 \
-                or segment.end_time < start_time:
-            segments.remove(segment)
-            continue
-        if backing_times:
-            if segment.file_start_time > file_end_time \
-                    or segment.file_end_time <= 0 \
-                    or segment.file_end_time < file_start_time:
-                segments.remove(segment)
+    _check_overshoot(segments, start_time, end_time, file_start_time, file_end_time)
 
     # Renumber segments, if applicable
     if len(segments) != original_length:
@@ -79,9 +82,9 @@ def _slide_segments(segments, duration):
     if segments:
         segments[-1].end_time = end_time
         segments[0].start_time = start_time
-        if backing_times:
-            segments[-1].file_end_time = file_end_time
-            segments[0].file_start_time = file_start_time
+        # These will be None if unset
+        segments[-1].file_end_time = file_end_time
+        segments[0].file_start_time = file_start_time
 
     return segments
 
