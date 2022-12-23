@@ -12,25 +12,43 @@ individual file as its own chapter. It can get chapter names from the original f
 from command line arguments, or just number them sequentially. By default, it only scans for mp3 files, but any file 
 extension can be added via arguments.
 
+### Cover
+The `cover` command adds and extracts cover images.
+
+**Example:**
+```shell
+$ m4b-util cover /path/to/book.m4b --extract /path/to/old/cover.png --apply-cover /path/to/new/cover.png
+```
+
+### Labels
+The `labels` command converts between Audacity labels, FFMPEG metadata, and Audiobook chapter metadata. Label end times 
+are ignored, as audiobooks need contiguous, non-overlapping chapters. When converting from a label file, the end time 
+of each segment is set from the start time of the next segment.
+
+**Example:**
+```shell
+$ m4b-util labels --from-label-file /path/to/labels.txt --to-book /path/to/existing/book.m4b --to-metadata-file /path/to/new_labels.txt
+```
+
 **Example:**
 ```shell
 $ m4b-util bind /path/to/inputs  --title "My Book" --cover /path/to/cover.png -e m4a -e .mp4 --output-dir /path/to/output 
 ```
 
-### Split By Silence
-The `split-by-silence` command takes a single audio file input, scans for silence, and writes out individual files 
-containing the audio between the silences.
+### Slide
+The `slide` command moves all chapters in a file by a specified duration, keeping the start and end times the same. 
+It can optionally trim audio from the start of the file, shifting all chapters an equal amount.
 
 **Example:**
 ```shell
-$ m4b-util split-by-silence /path/to/input.mp3 --output-dir /path/to/output --output_pattern "chapter_{:03d}.mp3"
+$ m4b-util slide /path/to/input.mp3 --duration 5.1 --trim-start 2.5
 ```
 
-### Split By Chapter
-The `split-by-chapter` command takes a single audio file input with chapter metadata, scans through those chapters, 
-and writes out individual files for each of those chapters.
+### Split 
+The `split` command takes a mode and a single audio file input, scans for silence or chapters (depending on mode), 
+and writes out individual files containing the audio in-between.
 
 **Example:**
 ```shell
-$ m4b-util split-by-chapter /path/to/input.mp3 --output-dir /path/to/output --output_pattern "chapter_{:03d}.mp3"
+$ m4b-util split silence /path/to/input.mp3 --output-dir /path/to/output --output_pattern "chapter_{:03d}.mp3"
 ```
