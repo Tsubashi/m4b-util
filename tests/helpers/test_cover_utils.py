@@ -1,6 +1,6 @@
 import pytest
 
-from m4b_util.helpers import cover_utils
+from m4b_util.helpers import cover_utils, ffprobe
 
 
 def test_extract_cover(tmp_path, covered_audio_file):
@@ -28,3 +28,23 @@ def test_extract_cover_non_covered_file(tmp_path, mp3_file_path, capsys):
     assert "Unable to extract cover" in sysout.out
     assert "ffmpeg" not in sysout.out
     assert not output.exists()
+
+
+def test_add_cover(tmp_path, test_data_path, m4a_file_path):
+    """Add a cover image to a file."""
+    out_file_path = tmp_path / "covered.m4a"
+    cover_utils.add_cover(m4a_file_path, test_data_path / "cover.png", out_file_path)
+
+    probe = ffprobe.run_probe(out_file_path)
+    assert probe
+    assert probe.streams[1]['codec_name'] == "png"
+
+
+def test_add_cover_invalid_file(tmp_path, m4a_file_path):
+    """Throw an error if the file cannot have a cover image."""
+    out_file_path = tmp_path / "covered.m4a"
+    fake_cover = tmp_path / "fake.png"
+    open(fake_cover, 'a').close()
+    with pytest.raises(RuntimeError) as e:
+        cover_utils.add_cover(m4a_file_path, fake_cover, out_file_path)
+    assert "Invalid data found when processing input" in str(e.value)

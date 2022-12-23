@@ -1,6 +1,6 @@
 [flake8]
 select = B,C,D,E,F,I,N,W,B902,B950
-ignore = E501, D212, D100
+ignore = E501, D212, D100, W503
 exclude =
     .tox,
     .git,

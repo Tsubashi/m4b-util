@@ -1,4 +1,6 @@
 """ffprobe tests."""
+import pytest
+
 from m4b_util.helpers import ffprobe
 
 
@@ -82,9 +84,32 @@ def test_probe_data(mp3_path):
     assert (probe.data == expected)
 
 
-def test_probe_blank_file(tmp_path):
+def test_probe_blank_file(fake_file):
     """Return None when run on an un-parsable file."""
-    file = tmp_path / "not-really-audio.mp3"
-    open(file, 'a').close()
-    probe = ffprobe.run_probe(file)
+    probe = ffprobe.run_probe(fake_file)
     assert not probe
+
+
+def test_decode_durations(m4a_file_path):
+    """Read the duration of a file by decoding it."""
+    meta_duration = ffprobe.get_file_duration(m4a_file_path)
+    decoded_duration = ffprobe.get_file_duration(m4a_file_path, decode_duration=True)
+    assert (meta_duration == pytest.approx(decoded_duration, 0.05) == 5.0)
+
+
+def test_decode_duration_fake_file(fake_file):
+    """Read the duration of a file by decoding it."""
+    with pytest.raises(RuntimeError) as e:
+        ffprobe.get_file_duration(fake_file, decode_duration=True)
+    assert ("Could not get audio stream." in str(e.value))
+
+
+def test_get_duration_no_metadata(mkv_file_path, capsys):
+    """Throw an error if no duration metadata, such as in mkv's."""
+    # Make sure it reads successfully if decode_durations is set
+    assert (ffprobe.get_file_duration(mkv_file_path, decode_duration=True) == 5.0)
+
+    # Make sure it doesn't work when decode_durations is not set
+    with pytest.raises(RuntimeError) as e:
+        ffprobe.get_file_duration(mkv_file_path)
+    assert ("Cannot parse duration listed in file." in str(e.value))

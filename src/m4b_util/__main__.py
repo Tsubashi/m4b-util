@@ -4,8 +4,8 @@ import sys
 
 from rich import print
 
-from . import bind, split
 from .__version__ import version
+from .subcommands import bind, cover, slide, split
 
 
 def _print_version():
@@ -16,8 +16,10 @@ def _print_version():
 
 # Set up the dictionary of commands. The values are tuples, first the function to run, second the description.
 allowed_commands = {
+    "cover": (cover.run, "Manipulate audio file cover images."),
     "bind": (bind.run, "Convert a folder of audio files into an m4b."),
     "split": (split.run, "Split a file into smaller pieces."),
+    "slide": (slide.run, "Slide chapter segments up or down."),
     "version": (_print_version, "Print the program's version.")
 }
 
@@ -41,6 +43,7 @@ def main():
     )
     parser.add_argument('command', help='Subcommand to run')
     # parse_args defaults to [1:] for args, but we need to exclude the rest of the args so they can be picked up by
+    # the subcommands.
     args = parser.parse_args(sys.argv[1:2])
 
     # Make sure args.command is always lowercase

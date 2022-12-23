@@ -1,7 +1,7 @@
 """Test the Bind subcommand."""
 from unittest.mock import patch
 
-import pytest
+import testhelpers
 
 from m4b_util.__main__ import allowed_commands, main as m4b_main
 
@@ -11,9 +11,8 @@ def _run_main_cmd(arg_list, expected_exit=0):
     argv_patch.extend(arg_list)
 
     with patch("sys.argv", argv_patch):
-        with pytest.raises(SystemExit) as e:
+        with testhelpers.expect_exit(expected_exit):
             m4b_main()
-        assert e.value.code == expected_exit
 
 
 def test_print_version(capsys):

@@ -18,3 +18,15 @@ def extract_cover(input_path, output_path):
         ffprogress.run(cmd, task_name="Extracting Cover.", print_errors=False)
     except RuntimeError:
         print("[yellow]Warning:[/] Unable to extract cover.")
+
+
+def add_cover(input_path, cover_path, output_path):
+    """Add a cover image to an audio file.
+
+    :param input_path: What to add the cover to.
+    :param cover_path: What cover to add.
+    :param output_path: Where to put the new file.
+    """
+    cmd = ["ffmpeg", "-y", "-i", input_path, "-i", cover_path, "-map", "0:a", "-map", "1",
+           "-c", "copy", "-disposition:v:0", "attached_pic", output_path]
+    ffprogress.run(cmd, task_name="Adding Cover.", print_errors=False)
