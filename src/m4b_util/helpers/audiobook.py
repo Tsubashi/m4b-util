@@ -19,7 +19,6 @@ class Audiobook:
     author: str = None
     # Set duration to a big number, (hopefully larger than our actual duration)
     # just in case we try to write chapters without knowing the final duration.
-    duration: float = 1000000000
     chapters: list = field(default_factory=lambda: [])
     cover: str = None
     date: str = None
@@ -184,9 +183,6 @@ class Audiobook:
                 end_time=end_time,
                 backing_file=file
             ))
-
-        # Mark the total duration of all files.
-        self.duration = time_counter
 
         # Shut off the status tracker and alert the user
         file_scan_status.stop()

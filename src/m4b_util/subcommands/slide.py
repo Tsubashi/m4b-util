@@ -39,7 +39,7 @@ def _check_overshoot(segments, start_time, end_time, file_start_time, file_end_t
             segments.remove(segment)
             continue
         # Don't do any operations on backing_file info if one of the needed vars is None.
-        if not None in (segment.file_start_time, segment.file_end_time, file_start_time, file_end_time):
+        if None not in (segment.file_start_time, segment.file_end_time, file_start_time, file_end_time):
             if segment.file_start_time > file_end_time \
                     or segment.file_end_time <= 0 \
                     or segment.file_end_time < file_start_time:
