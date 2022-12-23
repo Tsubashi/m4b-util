@@ -5,7 +5,7 @@ import sys
 from rich import print
 
 from .__version__ import version
-from .subcommands import bind, cover, slide, split
+from .subcommands import bind, cover, labels, slide, split
 
 
 def _print_version():
@@ -18,6 +18,7 @@ def _print_version():
 allowed_commands = {
     "cover": (cover.run, "Manipulate audio file cover images."),
     "bind": (bind.run, "Convert a folder of audio files into an m4b."),
+    "labels": (labels.run, "Convert between Audacity labels, FFMPEG metadata, and Audiobook Chapters."),
     "split": (split.run, "Split a file into smaller pieces."),
     "slide": (slide.run, "Slide chapter segments up or down."),
     "version": (_print_version, "Print the program's version.")
