@@ -24,7 +24,7 @@ def label_file_path(tmp_path):
     return label_file
 
 
-def _run_cover_cmd(arg_list):
+def _run_labels_cmd(arg_list):
     """Patch the runtime arguments, then run the split command."""
     argv_patch = ["m4b-util", "labels"]
     argv_patch.extend(arg_list)
@@ -108,7 +108,7 @@ def test_labels_from_labels(tmp_path, label_file_path, variable_volume_segments_
     """Generate all possible outputs from the label command, using a label file as input."""
     meta_file_path = tmp_path / "ffmetadata"
     label_out_path = tmp_path / "labels.out.txt"
-    _run_cover_cmd([
+    _run_labels_cmd([
         "--from-label-file", str(label_file_path),
         "--to-metadata-file", str(meta_file_path),
         "--to-label-file", str(label_out_path),
@@ -171,7 +171,7 @@ def test_labels_from_book(tmp_path, chaptered_audio_file_path, expected_data, va
     """Generate all possible outputs from the label command, using an audiobook file as input."""
     meta_file_path = tmp_path / "ffmetadata"
     label_out_path = tmp_path / "labels.out.txt"
-    _run_cover_cmd([
+    _run_labels_cmd([
         "--from-book", str(chaptered_audio_file_path),
         "--to-metadata-file", str(meta_file_path),
         "--to-label-file", str(label_out_path),
@@ -213,7 +213,7 @@ def test_labels_from_book(tmp_path, chaptered_audio_file_path, expected_data, va
 
 def test_labels_overshoot(label_file_path, abrupt_ending_file_path):
     """Trim labels that extend beyond file when writing to book. Truncate those that begin inside, but end outside."""""
-    _run_cover_cmd([
+    _run_labels_cmd([
         "--from-label-file", str(label_file_path),
         "--to-book", str(abrupt_ending_file_path)
     ])
@@ -232,6 +232,6 @@ def test_labels_overshoot(label_file_path, abrupt_ending_file_path):
 
 def test_labels_no_output(label_file_path, tmp_path):
     """Don't write any files if no output is specified."""
-    _run_cover_cmd(["--from-label-file", str(label_file_path)])
+    _run_labels_cmd(["--from-label-file", str(label_file_path)])
     expected_files = [label_file_path.name]
     testhelpers.check_output_folder(tmp_path, expected_files, check_func=testhelpers.assert_file_path_is_file)
