@@ -39,6 +39,7 @@ def test_show_order_for_specific_files(mp3_path, capsys):
                        )
     assert (output.out == expected_output)
 
+
 def test_nonexistent_output_dir(capsys):
     """Alert the user if the output dir doesn't exist."""
     _run_bind_cmd(["fake/input/dir", "--output-dir", "/some/nonexistent/directory/"])
@@ -108,6 +109,7 @@ def test_bind_specific_files(wav_path, tmp_path, capsys):
     assert probe.tags['album'] == "None"
     assert probe.tags['date'] == "None"
     assert probe.tags['genre'] == "Audiobook"
+
 
 def test_bind_files_specified_with_input_dir_too(mp3_path, tmp_path, capsys):
     """Bind specific files, even if an input directory is specified."""

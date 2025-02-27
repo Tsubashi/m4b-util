@@ -35,24 +35,29 @@ def _parse_args():
     return parser.parse_args(sys.argv[2:])
 
 
-def run():
-    """Entrypoint for bind subcommand."""
-    args = _parse_args()
-
+def check_args(input_folder, files, output_dir):
+    """Check the arguments for validity."""
     # We either need an input folder or a list of files.
-    if not args.input_folder and not args.files:
+    if not input_folder and not files:
         print("[bold red]Error:[/] You must provide either an input folder or a list of files.")
         return -1
 
     # Warn the user if they specified both an input folder and a list of files.
-    if args.input_folder and args.files:
+    if input_folder and files:
         print("[bold yellow]Warning:[/] Both an input folder and specific files were specified. "
               "The input folder will be ignored.")
 
     # Make sure the output directory exists, if it was specified.
-    if args.output_dir and not Path(args.output_dir).is_dir():
-        print(f"[bold red]Error:[/] '{args.output_dir}' is not a directory.")
+    if output_dir and not Path(output_dir).is_dir():
+        print(f"[bold red]Error:[/] '{output_dir}' is not a directory.")
         return -1
+
+
+def run():
+    """Entrypoint for bind subcommand."""
+    args = _parse_args()
+
+    check_args(args.input_folder, args.files, args.output_dir)
 
     # Set info from args
     book = Audiobook(
