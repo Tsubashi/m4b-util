@@ -1,13 +1,18 @@
+# Standard Library
 from dataclasses import dataclass, field
 from pathlib import Path
 import shutil
 from tempfile import mkdtemp
 
+# Third Party
+from lark import Lark
 from natsort import natsorted
 from rich import print
 from rich.status import Status
 
+# Local
 from . import cover_utils, ffprobe, ffprogress
+from .ffmetadata import FFMETADATA_GRAMMAR, FFMetadataTransformer
 from .finders import find_chapters
 from .parallel_ffmpeg import ParallelFFmpeg
 from .segment_data import SegmentData
@@ -74,6 +79,30 @@ class Audiobook:
                          f"title={title}\n"
                          )
         return metadata
+
+    @metadata.setter
+    def metadata(self, value):
+        """Set metadata from a string."""
+        parser = Lark(FFMETADATA_GRAMMAR, start='metadata', parser='lalr', transformer=FFMetadataTransformer())
+        metadata = parser.parse(value)
+        self.title = metadata['global'].get('title')
+        self.author = metadata['global'].get('artist')
+        self.date = metadata['global'].get('date')
+        for chapter in metadata['chapters']:
+            # If we don't have a start and end time, we can't use this chapter, so skip it.
+            if chapter.get("START") and chapter.get("END"):
+                # TIMEBASE is a fraction represented as a string. In order to use it, we will need to convert it to
+                # a numerical value.
+                timebase = chapter.get("TIMEBASE", "1/1000")  # Default to 1ms
+                num, den = timebase.split('/')
+                timebase = int(num) / int(den)
+
+                # Put it all together!
+                self.chapters.append(SegmentData(
+                    title=chapter.get('title'),
+                    start_time=int(chapter.get('START')) * timebase,
+                    end_time=int(chapter.get('END')) * timebase
+                ))
 
     @staticmethod
     def scan_dir(input_dir):

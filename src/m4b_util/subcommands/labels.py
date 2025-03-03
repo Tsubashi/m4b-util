@@ -1,11 +1,16 @@
+# Standard Library
 import argparse
 from pathlib import Path
 import re
 import sys
 
+# Third Party
+from lark import UnexpectedInput
 from rich import print
 
+# Local
 from ..helpers import Audiobook, ffprobe, SegmentData
+from ..helpers.ffmetadata import FFMETADATA_TERMINATOR_FRIENDLY_NAMES
 
 
 def _parse_args():
@@ -17,6 +22,7 @@ def _parse_args():
     input_options = parser.add_mutually_exclusive_group(required=True)
     input_options.add_argument("--from-book", help="Read chapters from file.")
     input_options.add_argument("--from-label-file", help="Read audacity labels from text file.")
+    input_options.add_argument("--from-metadata-file", help="Read ffmpeg metadata from file.")
 
     # Outputs
     output_options = parser.add_argument_group("output options")
@@ -73,30 +79,37 @@ def labels_from_segment_data(segments):
     return labels
 
 
-def run():
-    """Run the subcommand."""
-    # Set up variables
-    args = _parse_args()
-    book = Audiobook()
-
+def _handle_input(args, book):
     # Handle input
     if args.from_label_file:
         with open(args.from_label_file) as f:
             labels = f.readlines()
         book.chapters = segment_data_from_labels(labels)
-    else:  # Use args.from_book
+    elif args.from_book:
         book.add_chapters_from_chaptered_file(args.from_book)
+    else:  # args.from_metadata_file:
+        with open(args.from_metadata_file) as f:
+            metadata = f.read()
+            try:
+                book.metadata = metadata
+            except UnexpectedInput as e:
+                print(f"[red]Error:[/] Parsing metadata failed on line {e.line}, column {e.column}:")
+                print(f"{e.get_context(metadata)}")
+                print("Expected one of the following token types:")
+                for terminator in e.accepts:
+                    print(f" - {FFMETADATA_TERMINATOR_FRIENDLY_NAMES.get(terminator, terminator)}")
+                return False
+    return True
 
-    # Handle output
+
+def _handle_output(args, book):
     if args.to_label_file:
         with open(args.to_label_file, 'w') as f:
             for label in labels_from_segment_data(book.chapters):
                 f.write(f"{label}\n")
-
     if args.to_metadata_file:
         with open(args.to_metadata_file, 'w') as f:
             f.write(book.metadata)
-
     if args.to_book:
         new_book = Audiobook()
         new_book.add_chapters_from_chaptered_file(args.to_book)
@@ -121,3 +134,17 @@ def run():
                 )
         new_book.chapters = new_chapters
         new_book.bind(args.to_book)
+
+
+def run():
+    """Run the subcommand."""
+    # Set up variables
+    args = _parse_args()
+    book = Audiobook()
+
+    # Handle input
+    if not _handle_input(args, book):
+        return 1
+
+    # Handle output
+    _handle_output(args, book)
