@@ -235,3 +235,66 @@ def test_labels_no_output(label_file_path, tmp_path):
     _run_labels_cmd(["--from-label-file", str(label_file_path)])
     expected_files = [label_file_path.name]
     testhelpers.check_output_folder(tmp_path, expected_files, check_func=testhelpers.assert_file_path_is_file)
+
+
+def test_from_metadata(tmp_path, chaptered_audio_file_path, expected_data):
+    """Read and apply metadata from a file."""
+    # Write the input metadata to a file
+    metadata_file_path = tmp_path / "ffmetadata"
+    metadata = r"""
+        ;FFMETADATA1
+        major_brand=M4A
+        minor_version=512
+        compatible_brands=M4A isomiso2
+        title=Super Secret: The Title
+        artist=A Great Author
+        album=Super Great Album
+        date=2011
+        genre=Audiobook
+        [CHAPTER]
+        TIMEBASE=1/1000
+        START=0
+        END=15000
+        title=Opening Credits
+        [CHAPTER]
+        TIMEBASE=1/1000
+        START=330987
+        title=Not Included
+        """
+    with open(metadata_file_path, "w") as f:
+        f.write(metadata)
+
+    # Generate the output files
+    label_out_path = tmp_path / "labels.out.txt"
+    _run_labels_cmd([
+        "--from-metadata-file", str(metadata_file_path),
+        "--to-label-file", str(label_out_path),
+        "--to-book", str(chaptered_audio_file_path)
+    ])
+
+    # Check Label file
+    expected_labeldata = (
+        "0.0	0.0	Opening Credits" "\n"
+    )
+    with open(label_out_path) as f:
+        labeldata = f.read()
+    assert labeldata == expected_labeldata
+
+    # Check audiobook output
+    probe = ffprobe.run_probe(chaptered_audio_file_path)
+    assert probe and len(probe.chapters) == 1
+    assert probe.chapters[0]['tags']['title'] == "Opening Credits"
+
+
+def test_bad_metadata(tmp_path, capsys):
+    """Handle bad metadata input."""
+    metadata_file_path = tmp_path / "ffmetadata"
+    metadata = r"""
+        """
+    with open(metadata_file_path, "w") as f:
+        f.write(metadata)
+
+    _run_labels_cmd(["--from-metadata-file", str(metadata_file_path)])
+
+    output = capsys.readouterr()
+    assert "Parsing metadata failed" in output.out

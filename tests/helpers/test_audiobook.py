@@ -597,3 +597,44 @@ def test_tmp_path():
     new_tmp_path = b._tmp_path
     assert new_tmp_path == tmp_path
     assert tmp_path.is_dir()
+
+
+def test_set_metadata():
+    """Set metadata on an audiobook."""
+    b = Audiobook()
+    metadata = r"""
+    ;FFMETADATA1
+    major_brand=M4A
+    minor_version=512
+    compatible_brands=M4A isomiso2
+    title=Super Secret: The Title
+    artist=A Great Author
+    album=Super Great Album
+    date=2011
+    genre=Audiobook
+    [CHAPTER]
+    TIMEBASE=1/1000
+    START=0
+    END=330987
+    title=Opening Credits
+    [CHAPTER]
+    TIMEBASE=1/1000
+    START=330987
+    END=335943
+    title=Part I
+    """
+
+    b.metadata = metadata
+
+    assert b.title == "Super Secret: The Title"
+    assert b.author == "A Great Author"
+    assert b.date == "2011"
+
+    # Check chapters
+    assert len(b.chapters) == 2
+    assert b.chapters[0].title == "Opening Credits"
+    assert b.chapters[0].start_time == 0
+    assert b.chapters[0].end_time == 330.987
+    assert b.chapters[1].title == "Part I"
+    assert b.chapters[1].start_time == 330.987
+    assert b.chapters[1].end_time == 335.943

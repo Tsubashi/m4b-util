@@ -95,6 +95,9 @@ def run():
             return 0
 
         # Add the files to the binder
+        if not args.input_folder:
+            print("[red]Error:[/] No input folder specified.")
+            return -1
         book.add_chapters_from_directory(
             input_dir=args.input_folder,
             use_filenames=args.use_filename,
