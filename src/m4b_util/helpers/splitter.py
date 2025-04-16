@@ -44,6 +44,9 @@ def split(
         if segment.title:
             cmd.extend(["-metadata", f"title={segment.title}"])
 
+        # Make sure to add the track number
+        cmd.extend(["-metadata", f"track={i + 1}/{len(segment_list)}"])
+
         # Add padding at the end of the segment
         if padding > 0.0:
             cmd.extend(["-af", f"apad=pad_dur={padding}"])

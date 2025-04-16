@@ -103,11 +103,13 @@ def test_overlapping_output_names(silences_file_path, tmp_path):
     testhelpers.check_output_folder(output_path=output_path, expected_files=expected_files, check_func=check_func)
 
 
-def test_title_metadata(silences_file_path, tmp_path):
+def test_metadata(silences_file_path, tmp_path):
     """Split a file into four parts with custom title names."""
     def check_func(input_file_path):
+        track_number = int(input_file_path.stem.split("_")[-1]) + 1
         probe = ffprobe.run_probe(input_file_path)
-        assert input_file_path.stem == probe.tags["title"]
+        assert probe.tags["title"] == input_file_path.stem
+        assert probe.tags["track"] == f"{track_number}/4"
     output_path = tmp_path / "output"
     segment_list = [
         SegmentData(id=0, start_time=0.0, end_time=2.5, title="segment_0000"),
