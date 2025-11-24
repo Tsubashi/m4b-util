@@ -64,6 +64,19 @@ def test_suggested_file_name():
     # Name (Overwrites Author & Title), does not double up m4b extension
     b.output_name = "Author McWrite-y.m4b"
     assert (str(b.suggested_file_name) == "Author McWrite-y.m4b")
+    # Author with slash (should be replaced with hyphen)
+    b.output_name = None
+    b.author = "Author/Name"
+    b.title = "Book Title"
+    assert (str(b.suggested_file_name) == "Author-Name - Book Title.m4b")
+    # Title with slash (should be replaced with hyphen)
+    b.author = "Author Name"
+    b.title = "Book/Title"
+    assert (str(b.suggested_file_name) == "Author Name - Book-Title.m4b")
+    # Both with slashes
+    b.author = "Author/Name"
+    b.title = "Book/Title"
+    assert (str(b.suggested_file_name) == "Author-Name - Book-Title.m4b")
 
 
 def test_file_scanner_mp3(mp3_path, expected_data):
@@ -638,3 +651,28 @@ def test_set_metadata():
     assert b.chapters[1].title == "Part I"
     assert b.chapters[1].start_time == 330.987
     assert b.chapters[1].end_time == 335.943
+
+
+def test_bind_with_slash_in_author_name(mp3_path, tmp_path):
+    """Create an audiobook when author name contains a slash."""
+    b = Audiobook(author="Author/Name", title="Book Title")
+    b.add_chapters_from_directory(mp3_path)
+
+    # The suggested filename should have slashes replaced with hyphens
+    expected_filename = "Author-Name - Book Title.m4b"
+    assert b.suggested_file_name == expected_filename
+
+    # Bind should succeed without FileNotFoundError
+    out_file_path = tmp_path / expected_filename
+    result = b.bind(out_file_path)
+    assert result is True
+
+    # Verify the output file exists
+    assert out_file_path.exists()
+    assert out_file_path.is_file()
+
+    # Verify output is valid
+    probe = ffprobe.run_probe(out_file_path)
+    assert probe
+    assert probe.tags['artist'] == "Author/Name"  # Metadata should keep original
+    assert probe.tags['title'] == "Book Title"
