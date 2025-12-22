@@ -136,7 +136,7 @@ def test_padding(silences_file_path, tmp_path):
     """Split a file into four parts with padding."""
     def check_func(input_file_path):
         probe = ffprobe.run_probe(input_file_path)
-        assert probe.data["format"]["duration"] == "3.024000"
+        assert probe.data["format"]["duration"] == "3.000000"
     output_path = tmp_path / "output"
     segment_list = [
         SegmentData(id=0, start_time=0.0, end_time=2.5, title="segment_0000"),

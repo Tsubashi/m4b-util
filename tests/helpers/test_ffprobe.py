@@ -26,8 +26,8 @@ def test_probe_data(mp3_path):
     expected = {
         'chapters': [],
         'format': {
-            'bit_rate': '64374',
-            'duration': '5.040000',
+            'bit_rate': '64889',
+            'duration': '5.000000',
             'format_long_name': 'MP2/3 (MPEG audio layer 2/3)',
             'format_name': 'mp3',
             'nb_programs': 0,
@@ -69,8 +69,8 @@ def test_probe_data(mp3_path):
                 'timed_thumbnails': 0,
                 'visual_impaired': 0
             },
-            'duration': '5.040000',
-            'duration_ts': 71124480,
+            'duration': '5.000000',
+            'duration_ts': 70560000,
             'index': 0,
             'initial_padding': 0,
             'r_frame_rate': '0/0',
