@@ -47,6 +47,9 @@ class Audiobook:
         # Use a default is self.output_name is not set.
         name = self.output_name or f"{self.author} - {self.title}.m4b"
 
+        # Replace slashes with a safe character to avoid path issues
+        name = name.replace("/", "-").replace("\\", "-")
+
         # Make sure it ends with .m4b
         if not name.endswith(".m4b"):
             name = f"{name}.m4b"
