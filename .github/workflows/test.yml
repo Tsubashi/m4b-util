@@ -37,7 +37,6 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - Ubuntu
           - Windows
         py:
           - "3.12"
