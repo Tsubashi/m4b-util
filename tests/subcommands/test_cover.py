@@ -1,5 +1,6 @@
 """Cover Subcommand Tests."""
 import filecmp
+import platform
 import shutil
 from unittest import mock
 
@@ -18,18 +19,17 @@ def _run_cover_cmd(arg_list):
         cover.run()
 
 
-def test_extract(tmp_path, test_data_path, covered_audio_file):
+def test_extract(tmp_path, test_data_path, covered_audio_file, cover_image_path):
     """Extract a cover."""
     cover_path = tmp_path / "out.png"
     _run_cover_cmd([str(covered_audio_file), "-e", str(cover_path)])
     assert cover_path.is_file()
-    assert filecmp.cmp(test_data_path / "cover.png", cover_path, shallow=False)
+    assert filecmp.cmp(cover_image_path, cover_path, shallow=False)
 
 
-def test_apply(test_data_path, m4a_file_path):
+def test_apply(test_data_path, m4a_file_path, cover_image_path):
     """Add a new cover."""
-    cover_path = test_data_path / "cover.png"
-    _run_cover_cmd([str(m4a_file_path), "-a", str(cover_path)])
+    _run_cover_cmd([str(m4a_file_path), "-a", str(cover_image_path)])
     probe = ffprobe.run_probe(m4a_file_path)
     assert probe
     cover_streams = [stream for stream in probe.data.get('streams', list()) if stream.get('codec_name') == 'png']

@@ -29,13 +29,13 @@ def test_splitter(silences_file_path, tmp_path):
     testhelpers.check_output_folder(output_path=output_path, expected_files=expected_files)
 
 
-def test_splitter_with_cover(silences_file_path, test_data_path, tmp_path):
+def test_splitter_with_cover(silences_file_path, test_data_path, tmp_path, cover_image_path):
     """Split a file into one part, making sure to include the cover image."""
     output_path = tmp_path / "output"
     out_file_path = output_path / "segment_0000.mp3"
     # Copy in the cover file
     output_path.mkdir(exist_ok=True)
-    shutil.copy(test_data_path / "cover.png", output_path / "cover.png")
+    shutil.copy(cover_image_path, output_path / "cover.png")
     segment_list = [
         SegmentData(id=0, start_time=0.0, end_time=2.5),
     ]

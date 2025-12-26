@@ -1,5 +1,6 @@
 """PyTest Configuration."""
 from pathlib import Path
+import platform
 from subprocess import run
 
 import pytest
@@ -34,6 +35,10 @@ def test_data_path():
     # Since __file__ returns the file name, we need to call parent to get the directory
     return Path(__file__).parent.joinpath("data").absolute()
 
+@pytest.fixture(scope='session')
+def cover_image_path(test_data_path):
+    """Path to the cover image used in tests."""
+    return test_data_path / f"cover_{platform.system().lower()}.png"
 
 @pytest.fixture()
 def wav_path(tmp_path):
@@ -89,7 +94,7 @@ def m4a_file_path(tmp_path):
 def covered_audio_file(tmp_path, test_data_path):
     """Path to an m4a file with a cover image."""
     output_path = tmp_path / "covered_audio_file.m4a"
-    cover_path = test_data_path / "cover.png"
+    cover_path = test_data_path / f"cover_{platform.system().lower()}.png"
     cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
            "-i", cover_path, "-c:v", "png",
            "-map", "0:a", "-map", "1", "-disposition:v:0", "attached_pic",

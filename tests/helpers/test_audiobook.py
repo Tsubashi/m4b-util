@@ -298,11 +298,11 @@ def test_bind_no_files(capsys):
     assert ("Nothing to bind" in output.out)
 
 
-def test_bind_keep_temp_files(mp3_path, tmp_path, test_data_path, capsys):
+def test_bind_keep_temp_files(mp3_path, tmp_path, test_data_path, capsys, cover_image_path):
     """Keep all temp files when asked."""
     out_file_path = tmp_path / "Book.m4b"
     b = Audiobook(
-        cover=test_data_path / "cover.png",
+        cover=cover_image_path,
         keep_temp_files=True
     )
     b.add_chapters_from_directory(mp3_path)
@@ -365,10 +365,10 @@ def test_bind_coverless(mp3_path, tmp_path):
     assert probe.tags['genre'] == "Audiobook"
 
 
-def test_bind_covered(mp3_path, tmp_path, test_data_path):
+def test_bind_covered(mp3_path, tmp_path, test_data_path, cover_image_path):
     """Create an audiobook with a cover."""
     out_file_path = tmp_path / "Book.m4b"
-    b = Audiobook(cover=test_data_path / "cover.png")
+    b = Audiobook(cover=cover_image_path)
     b.add_chapters_from_directory(mp3_path)
     b.bind(out_file_path)
 
@@ -549,10 +549,10 @@ def test_add_fake_chaptered_file(fake_file, capsys):
     assert len(b.chapters) == 0
 
 
-def test_get_cover_in_chapter_dir(test_data_path, m4a_path):
+def test_get_cover_in_chapter_dir(test_data_path, m4a_path, cover_image_path):
     """Search out image files named "cover" when importing chapters from a directory."""
     cover_file_path = m4a_path / "cover.png"
-    shutil.copy(test_data_path / "cover.png", cover_file_path)
+    shutil.copy(cover_image_path, cover_file_path)
     _do_dir_scan(
         Audiobook(),
         m4a_path,
@@ -560,10 +560,10 @@ def test_get_cover_in_chapter_dir(test_data_path, m4a_path):
     )
 
 
-def test_noncover_image_in_chapter_dir(test_data_path, m4a_path):
+def test_noncover_image_in_chapter_dir(test_data_path, m4a_path, cover_image_path):
     """Ignore images not named "cover" when importing chapters from a directory."""
     cover_file_path = m4a_path / "not-a-cover.png"
-    shutil.copy(test_data_path / "cover.png", cover_file_path)
+    shutil.copy(cover_image_path, cover_file_path)
     _do_dir_scan(
         Audiobook(),
         m4a_path,
@@ -571,10 +571,10 @@ def test_noncover_image_in_chapter_dir(test_data_path, m4a_path):
     )
 
 
-def test_wrong_file_ext_cover_image_in_chapter_dir(test_data_path, m4a_path):
+def test_wrong_file_ext_cover_image_in_chapter_dir(test_data_path, m4a_path, cover_image_path):
     """Ignore cover images with the wrong extensions when importing chapters from a directory."""
     cover_file_path = m4a_path / "cover.tiff"
-    shutil.copy(test_data_path / "cover.png", cover_file_path)
+    shutil.copy(cover_image_path, cover_file_path)
     _do_dir_scan(
         Audiobook(),
         m4a_path,
