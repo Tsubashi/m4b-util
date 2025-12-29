@@ -35,10 +35,12 @@ def test_data_path():
     # Since __file__ returns the file name, we need to call parent to get the directory
     return Path(__file__).parent.joinpath("data").absolute()
 
+
 @pytest.fixture(scope='session')
 def cover_image_path(test_data_path):
     """Path to the cover image used in tests."""
     return test_data_path / f"cover_{platform.system().lower()}.png"
+
 
 @pytest.fixture()
 def wav_path(tmp_path):

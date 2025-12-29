@@ -638,3 +638,18 @@ def test_set_metadata():
     assert b.chapters[1].title == "Part I"
     assert b.chapters[1].start_time == 330.987
     assert b.chapters[1].end_time == 335.943
+
+
+def test_custom_bitrate(mp3_path, tmp_path):
+    """Bind an audiobook with a custom bitrate."""
+    out_file_path = tmp_path / "Book.m4b"
+    b = Audiobook(bitrate="64k")
+    b.add_chapters_from_directory(mp3_path)
+    b.bind(out_file_path)
+
+    # Verify output
+    probe = ffprobe.run_probe(out_file_path)
+    assert probe
+
+    # Check bitrate
+    assert probe.format['bit_rate'] == "35380"

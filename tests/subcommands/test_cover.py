@@ -1,6 +1,5 @@
 """Cover Subcommand Tests."""
 import filecmp
-import platform
 import shutil
 from unittest import mock
 

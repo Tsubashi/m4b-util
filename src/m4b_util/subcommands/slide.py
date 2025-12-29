@@ -13,6 +13,7 @@ def _parse_args():
         description='Slide chapter segments up or down.'
     )
     parser.add_argument('input_file', help='Input filename')
+    parser.add_argument('-b', "--bitrate", type=str, default="128k", help='Bitrate to use for the audiobook. (e.g. 128k)')
     parser.add_argument('-d', "--duration", type=float, help='Duration to shift (seconds). Negative values allowed.')
     parser.add_argument("--trim-start", type=float, help='Duration to trim from beginning (seconds).')
 
@@ -99,7 +100,7 @@ def run():
     if args.trim_start:
         slide_dur = slide_dur - args.trim_start
 
-    book = Audiobook()
+    book = Audiobook(bitrate=args.bitrate)
     book.add_chapters_from_chaptered_file(input_path)
     if book.chapters:
         # Find initial end times, in case we need to modify it.

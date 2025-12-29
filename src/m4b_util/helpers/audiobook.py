@@ -22,8 +22,7 @@ from .segment_data import SegmentData
 class Audiobook:
     """Store all the info pertaining to an audiobook."""
     author: str = None
-    # Set duration to a big number, (hopefully larger than our actual duration)
-    # just in case we try to write chapters without knowing the final duration.
+    bitrate: str = "128k"
     chapters: list = field(default_factory=lambda: [])
     cover: str = None
     date: str = None
@@ -284,7 +283,7 @@ class Audiobook:
             if segment.title:
                 cmd.extend(["-metadata", f"title={segment.title}"])
             cmd.extend(["-filter_complex", "[0:a]asetpts=N/SR/TB[s0]", "-map", "[s0]",
-                        "-c:a", "aac", out_m4a, "-y"])
+                        "-c:a", "aac", "-b:a", self.bitrate, out_m4a, "-y"])
             tasks.append({
                 "name": file.stem,
                 "command": cmd

@@ -16,6 +16,7 @@ def _parse_args():
     )
     parser.add_argument('input_folder', nargs="?", type=str, help="The folder to scan for input files.")
     parser.add_argument('-a', "--author", type=str, help="Name of the author.")
+    parser.add_argument('-b', "--bitrate", type=str, default="128k", help="Bitrate to use for the audiobook. (e.g. 128k)")
     parser.add_argument('-c', "--cover", type=str, help="Image file to use as cover")
     parser.add_argument('-f', "--files", nargs='+', type=str, action='extend',
                         help="Specific files to use for the audiobook. Overrides `input_folder`.")
@@ -40,7 +41,7 @@ def check_args(input_folder, files, output_dir):
     # We either need an input folder or a list of files.
     if not input_folder and not files:
         print("[bold red]Error:[/] You must provide either an input folder or a list of files.")
-        return -1
+        return False
 
     # Warn the user if they specified both an input folder and a list of files.
     if input_folder and files:
@@ -50,18 +51,22 @@ def check_args(input_folder, files, output_dir):
     # Make sure the output directory exists, if it was specified.
     if output_dir and not Path(output_dir).is_dir():
         print(f"[bold red]Error:[/] '{output_dir}' is not a directory.")
-        return -1
+        return False
+
+    return True
 
 
 def run():
     """Entrypoint for bind subcommand."""
     args = _parse_args()
 
-    check_args(args.input_folder, args.files, args.output_dir)
+    if not check_args(args.input_folder, args.files, args.output_dir):
+        return -1
 
     # Set info from args
     book = Audiobook(
         author=args.author,
+        bitrate=args.bitrate,
         cover=args.cover,
         output_name=args.output_name,
         title=args.title,
@@ -95,9 +100,6 @@ def run():
             return 0
 
         # Add the files to the binder
-        if not args.input_folder:
-            print("[red]Error:[/] No input folder specified.")
-            return -1
         book.add_chapters_from_directory(
             input_dir=args.input_folder,
             use_filenames=args.use_filename,
