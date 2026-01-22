@@ -21,13 +21,18 @@ $ m4b-util cover /path/to/book.m4b --extract /path/to/old/cover.png --apply-cove
 ```
 
 ### Labels
-The `labels` command converts between Audacity labels, FFMPEG metadata, and Audiobook chapter metadata. Label end times 
-are ignored, as audiobooks need contiguous, non-overlapping chapters. When converting from a label file, the end time 
+The `labels` command converts between Audacity labels, cue sheets, FFMPEG metadata, and Audiobook chapter metadata. Label end times
+are ignored, as audiobooks need contiguous, non-overlapping chapters. When converting from a label file, the end time
 of each segment is set from the start time of the next segment.
 
 **Example:**
 ```shell
 $ m4b-util labels --from-label-file /path/to/labels.txt --to-book /path/to/existing/book.m4b --to-metadata-file /path/to/new_labels.txt
+```
+
+**Example:**
+```shell
+$ m4b-util labels --from-cue-file /path/to/chapters.cue --to-cue-file /path/to/new.cue
 ```
 
 **Example:**

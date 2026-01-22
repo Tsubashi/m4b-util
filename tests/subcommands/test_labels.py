@@ -3,7 +3,14 @@ from unittest import mock
 import pytest
 import testhelpers
 
-from m4b_util.helpers import ffprobe, SegmentData
+from m4b_util.helpers import (
+    ffprobe,
+    SegmentData,
+    cue_from_segment_data,
+    cue_time_to_seconds,
+    seconds_to_cue_time,
+    segment_data_from_cue,
+)
 from m4b_util.subcommands import labels
 
 
@@ -22,6 +29,20 @@ def label_file_path(tmp_path):
                 "17.600000	19.999000	8 - 880Hz" "\n"
                 )
     return label_file
+
+
+@pytest.fixture
+def cue_file_path(tmp_path):
+    """A generic cue file."""
+    cue_file = tmp_path / "labels.cue"
+    times = [0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.6]
+    with open(cue_file, "w") as f:
+        f.write('FILE "book" WAVE\n')
+        for i, t in enumerate(times, start=1):
+            f.write(f"  TRACK {i:02d} AUDIO\n")
+            f.write(f"    TITLE \"{i} - {i * 110}Hz\"\n")
+            f.write(f"    INDEX 01 {seconds_to_cue_time(t)}\n")
+    return cue_file
 
 
 def _run_labels_cmd(arg_list):
@@ -102,6 +123,33 @@ def test_labels_from_segment_data():
     ]
     actual = labels.labels_from_segment_data(input_list)
     assert actual == expected
+
+
+def test_segment_data_from_cue(cue_file_path):
+    """Convert cue sheet to a list of segment data."""
+    times = [0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.6]
+    converted = [cue_time_to_seconds(seconds_to_cue_time(t)) for t in times]
+    expected = []
+    for i, start in enumerate(converted, start=1):
+        end = converted[i] if i < len(converted) else converted[i - 1]
+        expected.append(SegmentData(start_time=start, end_time=end, title=f"{i} - {i * 110}Hz"))
+    with open(cue_file_path) as f:
+        lines = f.readlines()
+    actual = segment_data_from_cue(lines)
+    assert actual == expected
+
+
+def test_cue_from_segment_data(cue_file_path):
+    """Create a cue sheet from a list of segment data."""
+    with open(cue_file_path) as f:
+        segments = segment_data_from_cue(f.readlines())
+    expected_lines = [f'FILE "labels.cue" WAVE']
+    for i, seg in enumerate(segments, start=1):
+        expected_lines.append(f"  TRACK {i:02d} AUDIO")
+        expected_lines.append(f'    TITLE "{seg.title}"')
+        expected_lines.append(f"    INDEX 01 {seconds_to_cue_time(seg.start_time)}")
+    actual = cue_from_segment_data(segments, "labels.cue")
+    assert actual == expected_lines
 
 
 def test_labels_from_labels(tmp_path, label_file_path, variable_volume_segments_file_path):
@@ -298,3 +346,23 @@ def test_bad_metadata(tmp_path, capsys):
 
     output = capsys.readouterr()
     assert "Parsing metadata failed" in output.out
+
+
+def test_labels_from_cue(tmp_path, cue_file_path, variable_volume_segments_file_path):
+    """Generate output from a cue file."""
+    cue_out_path = tmp_path / "out.cue"
+    _run_labels_cmd([
+        "--from-cue-file", str(cue_file_path),
+        "--to-cue-file", str(cue_out_path),
+        "--to-book", str(variable_volume_segments_file_path)
+    ])
+
+    with open(cue_file_path) as f:
+        segments = segment_data_from_cue(f.readlines())
+    expected = "\n".join(cue_from_segment_data(segments, cue_out_path.name)) + "\n"
+    with open(cue_out_path) as f:
+        cuedata = f.read()
+    assert cuedata == expected
+
+    probe = ffprobe.run_probe(variable_volume_segments_file_path)
+    assert probe and len(probe.chapters) == len(segments)
