@@ -1,7 +1,7 @@
 """The Splitter Class."""
 from m4b_util.helpers import cover_utils
 from m4b_util.helpers.parallel_ffmpeg import ParallelFFmpeg
-
+import os
 
 def split(
         input_path,
@@ -27,7 +27,10 @@ def split(
     for i, segment in enumerate(segment_list):
         time = segment.end_time - segment.start_time
 
-        output_dir_path.mkdir(exist_ok=True)
+        # Create the full path down to the place where the output file will go, rather
+        # than just the leaf directory.
+        if not os.path.exists(output_dir_path):
+            os.makedirs(output_dir_path, exist_ok=True)
         output_path = output_dir_path / output_pattern.format(i, i=i, title=segment.title)
 
         # Set up our FFMPEG command
