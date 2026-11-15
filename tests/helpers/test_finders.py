@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import testhelpers
+
 from m4b_util.helpers import SegmentData
 from m4b_util.helpers.finders import find_chapters, find_silence
 from m4b_util.helpers.finders.silence_finder import SilenceLineParser
@@ -17,11 +19,12 @@ def test_find_silence(silences_file_path):
                     file_start_time=05.00, file_end_time=10.0),
         SegmentData(id=2, start_time=10.000, end_time=15.0, backing_file=silences_file_path,
                     file_start_time=10.00, file_end_time=15.0),
-        SegmentData(id=3, start_time=15.000, end_time=20.011, backing_file=silences_file_path,
-                    file_start_time=15.00, file_end_time=20.011),
+        SegmentData(id=3, start_time=15.000, end_time=20.0, backing_file=silences_file_path,
+                    file_start_time=15.00, file_end_time=20.0),
     ]
     actual = find_silence(silences_file_path, silence_duration=0.25)
-    assert actual == expected
+    # The reported end of the file varies by a few milliseconds between ffmpeg versions.
+    testhelpers.assert_segments_close(actual, expected)
 
 
 def test_find_trimmed_silence(silences_file_path):
@@ -82,11 +85,12 @@ def test_trimmed_silence_nonsilence_ending(abrupt_ending_file_path):
                     file_start_time=05.00, file_end_time=07.5),
         SegmentData(id=2, start_time=10.000, end_time=12.5, backing_file=abrupt_ending_file_path,
                     file_start_time=10.00, file_end_time=12.5),
-        SegmentData(id=3, start_time=15.000, end_time=17.51, backing_file=abrupt_ending_file_path,
-                    file_start_time=15.00, file_end_time=17.51),
+        SegmentData(id=3, start_time=15.000, end_time=17.5, backing_file=abrupt_ending_file_path,
+                    file_start_time=15.00, file_end_time=17.5),
     ]
     actual = find_silence(abrupt_ending_file_path, silence_duration=0.25, trim_silence=True)
-    assert actual == expected
+    # The reported end of the file varies by a few milliseconds between ffmpeg versions.
+    testhelpers.assert_segments_close(actual, expected)
 
 
 def test_silence_bad_file(tmp_path):
@@ -178,6 +182,34 @@ def test_trim_silence():
     parser.parse_lines(lines)
     times = parser.get_segments()
     assert times == [(0.0, 1.5), (2.0, 3.5), (4.0, 5.5), (6.0, 7.5), (8.0, 10.0)]
+
+
+def test_trim_silence_ignores_late_leading_silence():
+    """Treat a silence reported a few milliseconds after the start as leading silence, not as a tiny segment."""
+    lines = [
+        " silence_start: 0.0106667 ",
+        " silence_end: 1.0 ",
+        " silence_start: 3.5 ",
+        "size=N/A time=00:00:08.60 bitrate=N/A",
+    ]
+    parser = SilenceLineParser(4.0, 12.6, trim_silence=True)
+    parser.parse_lines(lines)
+    times = parser.get_segments()
+    assert times == [(5.0, 7.5)]
+
+
+def test_trim_silence_keeps_short_leading_audio():
+    """Keep audio at the start of the file when it is longer than the leading silence allowance."""
+    lines = [
+        " silence_start: 0.06 ",
+        " silence_end: 1.0 ",
+        " silence_start: 3.5 ",
+        "size=N/A time=00:00:08.60 bitrate=N/A",
+    ]
+    parser = SilenceLineParser(4.0, 12.6, trim_silence=True)
+    parser.parse_lines(lines)
+    times = parser.get_segments()
+    assert times == [(4.0, 4.06), (5.0, 7.5)]
 
 
 def test_preserving_silence():

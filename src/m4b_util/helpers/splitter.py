@@ -2,6 +2,7 @@
 from pathvalidate import sanitize_filename
 
 from m4b_util.helpers import cover_utils
+from m4b_util.helpers.ffmpeg_trim import trim_args
 from m4b_util.helpers.parallel_ffmpeg import ParallelFFmpeg
 
 
@@ -30,11 +31,13 @@ def split(
         time = segment.end_time - segment.start_time
 
         output_dir_path.mkdir(exist_ok=True)
-        safe_title = sanitize_filename(segment.title) if segment.title else ""
+        # Untitled segments are named "None".
+        safe_title = sanitize_filename(str(segment.title))
         output_path = output_dir_path / output_pattern.format(i, i=i, title=safe_title)
 
         # Set up our FFMPEG command
-        cmd = ["ffmpeg", "-ss", str(segment.start_time), "-t", str(time), "-i", input_path]
+        seek_args, filters = trim_args(segment.start_time, time)
+        cmd = ["ffmpeg", *seek_args, "-i", input_path]
 
         # Check to see if we had a cover image. If so, include it
         if (output_dir_path / "cover.png").exists():
@@ -52,7 +55,9 @@ def split(
 
         # Add padding at the end of the segment
         if padding > 0.0:
-            cmd.extend(["-af", f"apad=pad_dur={padding}"])
+            filters.append(f"apad=pad_dur={padding}")
+        if filters:
+            cmd.extend(["-af", ",".join(filters)])
 
         # Finish the command with our output path
         cmd.append(output_path)

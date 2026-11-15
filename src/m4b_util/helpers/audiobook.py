@@ -14,6 +14,7 @@ from rich.status import Status
 # Local
 from . import cover_utils, ffprobe, ffprogress
 from .ffmetadata import FFMETADATA_GRAMMAR, FFMetadataTransformer
+from .ffmpeg_trim import trim_args
 from .finders import find_chapters
 from .parallel_ffmpeg import ParallelFFmpeg
 from .segment_data import SegmentData
@@ -273,17 +274,16 @@ class Audiobook:
             temp_files.append(out_m4a)
 
             # Write the FFMPEG command
-            cmd = ["ffmpeg"]
-            if segment.file_start_time:
-                cmd.extend(["-ss", str(segment.file_start_time)])
-            cmd.extend(["-i", file])
+            start_time = segment.file_start_time or 0.0
+            duration = None
             if segment.file_end_time:
-                start_time = segment.file_start_time or 0.0
-                end_time_dur = segment.file_end_time - start_time
-                cmd.extend(["-t", str(end_time_dur)])
+                duration = segment.file_end_time - start_time
+            seek_args, filters = trim_args(start_time, duration)
+            filters.append("asetpts=N/SR/TB")
+            cmd = ["ffmpeg", *seek_args, "-i", file]
             if segment.title:
                 cmd.extend(["-metadata", f"title={segment.title}"])
-            cmd.extend(["-filter_complex", "[0:a]asetpts=N/SR/TB[s0]", "-map", "[s0]",
+            cmd.extend(["-filter_complex", f"[0:a]{','.join(filters)}[s0]", "-map", "[s0]",
                         "-c:a", "aac", "-b:a", self.bitrate, out_m4a, "-y"])
             tasks.append({
                 "name": file.stem,

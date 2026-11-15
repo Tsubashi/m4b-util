@@ -41,6 +41,25 @@ def assert_file_path_is_file(input_file_path):
     assert input_file_path.is_file()
 
 
+def assert_segments_close(actual, expected, tolerance=0.015):
+    """Compare two segment lists, allowing their times to differ slightly.
+
+    Different ffmpeg versions disagree by a few milliseconds on where a file ends.
+    """
+    assert len(actual) == len(expected)
+    for actual_segment, expected_segment in zip(actual, expected):
+        for field in ("start_time", "end_time", "file_start_time", "file_end_time"):
+            actual_time = getattr(actual_segment, field)
+            expected_time = getattr(expected_segment, field)
+            if expected_time is None:
+                assert actual_time is None, field
+            else:
+                assert actual_time == pytest.approx(expected_time, abs=tolerance), field
+        assert actual_segment.id == expected_segment.id
+        assert actual_segment.title == expected_segment.title
+        assert actual_segment.backing_file == expected_segment.backing_file
+
+
 def soften_backing_file(segment_list):
     """Remove path portion of backing_file from segments, as it will change with each test."""
     for segment in segment_list:

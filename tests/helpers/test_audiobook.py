@@ -5,6 +5,7 @@ from subprocess import run
 from tempfile import TemporaryDirectory
 
 from natsort import natsorted
+import pytest
 import testhelpers
 
 from m4b_util.helpers import Audiobook, cover_utils, ffprobe, SegmentData
@@ -473,7 +474,8 @@ def test_rebind_single_file_selections(chaptered_audio_file_path, tmp_path):
     assert probe.chapters[6]['tags']['title'] == "440Hz - Soft"
 
     # Check duration
-    assert probe.format['duration'] == "17.520333"
+    # Encoder padding makes the exact duration vary slightly between ffmpeg versions.
+    assert float(probe.format['duration']) == pytest.approx(17.5, abs=0.03)
     assert probe.audio['duration'] == "17.520333"
 
     # Check metadata
@@ -781,7 +783,8 @@ def test_custom_bitrate(mp3_path, tmp_path):
     assert probe
 
     # Check bitrate
-    assert probe.format['bit_rate'] == "35380"
+    # The exact bitrate varies slightly between ffmpeg versions.
+    assert int(probe.format['bit_rate']) == pytest.approx(35380, rel=0.01)
 
 
 def test_title_with_special_characters(mp3_path, tmp_path):

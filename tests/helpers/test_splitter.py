@@ -1,8 +1,10 @@
 import shutil
 
+import pytest
 import testhelpers
 
 from m4b_util.helpers import ffprobe, SegmentData, splitter
+from m4b_util.helpers.finders import find_silence
 
 
 def test_splitter(silences_file_path, tmp_path):
@@ -132,11 +134,34 @@ def test_metadata(silences_file_path, tmp_path):
     testhelpers.check_output_folder(output_path=output_path, expected_files=expected_files, check_func=check_func)
 
 
+def test_cut_position(silences_file_path, tmp_path):
+    """Start each segment exactly where requested, even when it is far enough into the file to need a seek."""
+    output_path = tmp_path / "output"
+    # The source file switches from tone to silence at 7.5 seconds, which is 0.2 seconds into this segment.
+    segment_list = [
+        SegmentData(id=0, start_time=7.3, end_time=9.8),
+    ]
+    splitter.split(
+        input_path=silences_file_path,
+        output_dir_path=output_path,
+        segment_list=segment_list,
+        output_pattern="segment_{i:04d}.wav",
+    )
+    out_file_path = output_path / "segment_0000.wav"
+    probe = ffprobe.run_probe(out_file_path)
+    assert float(probe.format["duration"]) == pytest.approx(2.5, abs=0.005)
+    tones = find_silence(out_file_path, silence_duration=0.25, trim_silence=True)
+    assert len(tones) == 1
+    assert tones[0].start_time == 0.0
+    assert tones[0].end_time == pytest.approx(0.2, abs=0.005)
+
+
 def test_padding(silences_file_path, tmp_path):
     """Split a file into four parts with padding."""
     def check_func(input_file_path):
         probe = ffprobe.run_probe(input_file_path)
-        assert probe.data["format"]["duration"] == "3.000000"
+        # Each segment is 2.5 seconds long, plus half a second of padding.
+        assert float(probe.data["format"]["duration"]) == pytest.approx(3.0, abs=0.005)
     output_path = tmp_path / "output"
     segment_list = [
         SegmentData(id=0, start_time=0.0, end_time=2.5, title="segment_0000"),

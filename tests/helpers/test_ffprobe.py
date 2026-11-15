@@ -33,7 +33,6 @@ def test_probe_data(mp3_path):
             'nb_programs': 0,
             'nb_stream_groups': 0,
             'nb_streams': 1,
-            'probe_score': 51,
             'size': '40556',
             'start_time': '0.023021',
             'tags': {}
@@ -84,6 +83,10 @@ def test_probe_data(mp3_path):
     # Remove items that can change between tests
     del probe.data['format']['filename']
     del probe.data['format']['tags']['encoder']
+
+    # Remove items that are different between ffmpeg versions
+    del probe.data['format']['probe_score']
+    probe.data['streams'][0].pop('mime_codec_string', None)
 
     # Remove items that are different between GHA runners
     if 'multilayer' in probe.data['streams'][0]['disposition']:

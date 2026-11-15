@@ -71,9 +71,10 @@ def test_bind_wav_defaults(wav_path, tmp_path, capsys):
 
     # Make sure we tell the user where the output file is. Since rich auto-wraps the output unpredictably, we will
     # just check to make sure the start of the message, and the book file name are present.
-    output = capsys.readouterr()
-    assert ("Writing " in output.out)
-    assert ("None - None.m4b" in output.out)
+    # The wrap can even land inside the file name, so remove the line breaks before looking for it.
+    output = capsys.readouterr().out.replace("\n", "")
+    assert ("Writing " in output)
+    assert ("None - None.m4b" in output)
 
 
 def test_bind_fail(tmp_path, capsys):

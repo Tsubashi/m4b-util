@@ -5,6 +5,9 @@ from m4b_util.helpers import ffprogress
 from m4b_util.helpers.segment_data import SegmentData
 
 FAKE_DURATION = 10000000000000.0  # Default to a very large number until we know the real duration.
+# Audio shorter than this (in seconds) before the first silence is treated as part of that silence. Some ffmpeg
+# versions report a silence at the very start of the input as starting a few milliseconds late.
+MIN_LEADING_AUDIO = 0.05
 silence_start_re = re.compile(r' silence_start: (?P<start>[0-9]+(\.?[0-9]*))')
 silence_end_re = re.compile(r' silence_end: (?P<end>[0-9]+(\.?[0-9]*))')
 total_duration_re = re.compile(
@@ -34,10 +37,13 @@ class SilenceLineParser:
             if silence_start_match:
                 timestamp = self.start_time + float(silence_start_match.group('start'))
                 if self.start_time < timestamp < self.end_time:
-                    self.segment_ends.append(timestamp)
                     if len(self.segment_starts) == 0:
+                        if timestamp - self.start_time < MIN_LEADING_AUDIO:
+                            # Started with silence, so there is no segment to end yet.
+                            return
                         # Started with non-silence.
                         self.segment_starts.append(self.start_time)
+                    self.segment_ends.append(timestamp)
 
     def _check_for_duration(self, line):
         total_duration_match = total_duration_re.search(line)
