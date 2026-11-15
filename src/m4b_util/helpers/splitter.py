@@ -1,4 +1,6 @@
 """The Splitter Class."""
+from pathvalidate import sanitize_filename
+
 from m4b_util.helpers import cover_utils
 from m4b_util.helpers.parallel_ffmpeg import ParallelFFmpeg
 
@@ -28,7 +30,8 @@ def split(
         time = segment.end_time - segment.start_time
 
         output_dir_path.mkdir(exist_ok=True)
-        output_path = output_dir_path / output_pattern.format(i, i=i, title=segment.title)
+        safe_title = sanitize_filename(segment.title) if segment.title else ""
+        output_path = output_dir_path / output_pattern.format(i, i=i, title=safe_title)
 
         # Set up our FFMPEG command
         cmd = ["ffmpeg", "-ss", str(segment.start_time), "-t", str(time), "-i", input_path]

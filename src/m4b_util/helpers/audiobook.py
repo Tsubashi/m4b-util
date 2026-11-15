@@ -7,6 +7,7 @@ from tempfile import mkdtemp
 # Third Party
 from lark import Lark
 from natsort import natsorted
+from pathvalidate import sanitize_filename
 from rich import print
 from rich.status import Status
 
@@ -44,7 +45,7 @@ class Audiobook:
     def suggested_file_name(self):
         """Calculate output name based on what we currently know."""
         # Use a default is self.output_name is not set.
-        name = self.output_name or f"{self.author} - {self.title}.m4b"
+        name = sanitize_filename(self.output_name or f"{self.author} - {self.title}.m4b")
 
         # Make sure it ends with .m4b
         if not name.endswith(".m4b"):

@@ -57,7 +57,7 @@ def test_suggested_file_name():
     assert (str(b.suggested_file_name) == "Write-y McAuthor - None.m4b")
     # Author + Title
     b.title = "Test Book: An exercise of m4b-util"
-    assert (str(b.suggested_file_name) == "Write-y McAuthor - Test Book: An exercise of m4b-util.m4b")
+    assert (str(b.suggested_file_name) == "Write-y McAuthor - Test Book An exercise of m4b-util.m4b")
     # Name (Overwrites Author & Title), Adds m4b extension
     b.output_name = "Author McWrite-y"
     assert (str(b.suggested_file_name) == "Author McWrite-y.m4b")
@@ -653,3 +653,21 @@ def test_custom_bitrate(mp3_path, tmp_path):
 
     # Check bitrate
     assert probe.format['bit_rate'] == "35380"
+
+
+def test_title_with_special_characters(mp3_path, tmp_path):
+    """Bind an audiobook with special characters in the title."""
+    out_file_path = tmp_path / "Book.m4b"
+    b = Audiobook(title="A Test/Book: With Special? Characters*")
+    b.add_chapters_from_directory(mp3_path)
+    b.bind(out_file_path)
+
+    # Make sure suggested file name is sanitized
+    assert str(b.suggested_file_name) == "None - A TestBook With Special Characters.m4b"
+
+    # Verify output
+    probe = ffprobe.run_probe(out_file_path)
+    assert probe
+
+    # Check metadata
+    assert probe.tags['title'] == "A Test/Book: With Special? Characters*"
