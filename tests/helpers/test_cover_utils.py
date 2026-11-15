@@ -40,6 +40,42 @@ def test_add_cover(tmp_path, test_data_path, m4a_file_path, cover_image_path):
     assert probe.streams[1]['codec_name'] == "png"
 
 
+def test_add_cover_from_covered_audio_file(tmp_path, m4a_file_path, covered_audio_file):
+    """Copy the cover image, and only the cover image, out of another audio file."""
+    out_file_path = tmp_path / "covered.m4a"
+    cover_utils.add_cover(m4a_file_path, covered_audio_file, out_file_path)
+
+    probe = ffprobe.run_probe(out_file_path)
+    assert probe
+    assert [stream['codec_type'] for stream in probe.streams] == ["audio", "video"]
+    assert probe.streams[1]['codec_name'] == "png"
+    assert probe.streams[1]['disposition']['attached_pic'] == 1
+
+
+def test_add_cover_from_file_with_video_before_cover(tmp_path, m4a_file_path, video_with_thumbnail_file):
+    """Copy the cover image, not the video, out of a file that has both."""
+    out_file_path = tmp_path / "covered.m4a"
+    cover_utils.add_cover(m4a_file_path, video_with_thumbnail_file, out_file_path)
+
+    probe = ffprobe.run_probe(out_file_path)
+    assert [stream['codec_name'] for stream in probe.streams] == ["aac", "png"]
+    assert probe.streams[1]['disposition']['attached_pic'] == 1
+
+
+def test_add_cover_does_not_copy_chapters(tmp_path, m4a_file_path, chaptered_audio_file_path, cover_image_path):
+    """Take only the cover from the cover source, leaving its chapters behind."""
+    cover_source = tmp_path / "chaptered_and_covered.m4a"
+    cover_utils.add_cover(chaptered_audio_file_path, cover_image_path, cover_source)
+    assert ffprobe.run_probe(cover_source).chapters
+
+    out_file_path = tmp_path / "covered.m4a"
+    cover_utils.add_cover(m4a_file_path, cover_source, out_file_path)
+
+    probe = ffprobe.run_probe(out_file_path)
+    assert probe.has_embedded_cover
+    assert probe.chapters == []
+
+
 def test_add_cover_invalid_file(tmp_path, m4a_file_path):
     """Throw an error if the file cannot have a cover image."""
     out_file_path = tmp_path / "covered.m4a"

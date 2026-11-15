@@ -17,7 +17,9 @@ def _parse_args():
     parser.add_argument('input_folder', nargs="?", type=str, help="The folder to scan for input files.")
     parser.add_argument('-a', "--author", type=str, help="Name of the author.")
     parser.add_argument('-b', "--bitrate", type=str, default="128k", help="Bitrate to use for the audiobook. (e.g. 128k)")
-    parser.add_argument('-c', "--cover", type=str, help="Image file to use as cover")
+    parser.add_argument('-c', "--cover", type=str,
+                        help="Image file to use as cover. If omitted, an image file named 'cover' in the input is "
+                             "used, or else the cover embedded in the first input file that has one.")
     parser.add_argument('-f', "--files", nargs='+', type=str, action='extend',
                         help="Specific files to use for the audiobook. Overrides `input_folder`.")
     parser.add_argument('-o', "--output-dir", type=str, help="Directory to put the finished audiobook.")

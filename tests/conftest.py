@@ -107,6 +107,21 @@ def covered_audio_file(tmp_path, test_data_path):
 
 
 @pytest.fixture()
+def video_with_thumbnail_file(tmp_path, cover_image_path):
+    """Path to an mp4 file with audio, a real video stream, and then a cover image."""
+    output_path = tmp_path / "video_with_thumbnail.mp4"
+    cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2.5",
+           "-f", "lavfi", "-i", "testsrc=duration=2.5:size=64x64:rate=5",
+           "-i", cover_image_path,
+           "-map", "0:a", "-map", "1:v", "-map", "2:v", "-c:v:0", "mpeg4", "-c:v:1", "png",
+           "-disposition:v:1", "attached_pic",
+           output_path
+           ]
+    run(cmd, capture_output=True, check=True)
+    return output_path
+
+
+@pytest.fixture()
 def video_only_file(tmp_path):
     """File containing a single video stream test pattern."""
     output_path = tmp_path / "video_only.mp4"

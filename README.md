@@ -12,6 +12,15 @@ individual file as its own chapter. It can get chapter names from the original f
 from command line arguments, or just number them sequentially. By default, it only scans for mp3 files, but any file 
 extension can be added via arguments.
 
+The cover is taken from the first of these that is available:
+1. The image given with `--cover`.
+2. An image file named `cover` (`.png`, `.jpg` or `.jpeg`) among the input files. If there are several, the first is 
+   used.
+3. The cover embedded in the first input file that has one.
+
+When the input is a single file that is used in full, its audio is not re-encoded and it keeps its own embedded cover, 
+regardless of the above.
+
 ### Cover
 The `cover` command adds and extracts cover images.
 

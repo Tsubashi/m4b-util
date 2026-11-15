@@ -167,9 +167,9 @@ class Audiobook:
         for file in input_files:
             file_scan_status.update(f"Scanning {file.name}")
 
-            # Check for cover file
+            # Check for cover file. A cover that has already been set (e.g. by the user) takes precedence.
             if file.stem == "cover" and file.suffix.lower() in [".png", ".jpg", ".jpeg"]:
-                self.cover = file
+                self.cover = self.cover or file
                 continue
 
             # Run ffprobe and parse the output.
@@ -306,19 +306,47 @@ class Audiobook:
         # Restore the old chapter list, as we are done writing metadata
         self.chapters = old_chapters
 
-        # Add cover artwork if specified, otherwise just copy the previous output
-        if self.cover:
-            covered_file = self._tmp_path / "covered.m4b"
-            try:
-                cover_utils.add_cover(coverless_file, self.cover, covered_file)
-            except RuntimeError as e:
-                print(str(e))
-                exit(1)
-            shutil.move(covered_file, finished_file)
-        else:
-            shutil.move(coverless_file, finished_file)
+        # Add cover artwork if we have any, otherwise just use the previous output.
+        shutil.move(self._add_cover(coverless_file), finished_file)
 
         return self._finish_bind(finished_file, output_path)
+
+    def _add_cover(self, coverless_file):
+        """Add the best available cover to an m4b file.
+
+        A cover the user (or a "cover" image file) specified is preferred. Failing that, fall back on the cover
+        embedded in the first input file that had one.
+
+        :param coverless_file: The file to add the cover to.
+        :return: Path to the file with the cover added, or `coverless_file` if no cover was added.
+        """
+        cover_source = self.cover or self._find_embedded_cover_file()
+        if not cover_source:
+            return coverless_file
+
+        covered_file = self._tmp_path / "covered.m4b"
+        try:
+            cover_utils.add_cover(coverless_file, cover_source, covered_file)
+        except RuntimeError as e:
+            # A cover that was asked for is required, but an embedded one is only preserved on a best-effort basis.
+            if self.cover:
+                print(str(e))
+                exit(1)
+            print(f"[yellow]Warning:[/] Unable to preserve the embedded cover from '[bold white]{cover_source}[/]'.")
+            return coverless_file
+        return covered_file
+
+    def _find_embedded_cover_file(self):
+        """Find the first file we are binding that has an embedded cover.
+
+        :return: Path to the file, or None if no file has an embedded cover.
+        """
+        # Several segments often share a backing file, so only look at each file once.
+        for file in dict.fromkeys(segment.backing_file for segment in self.chapters):
+            probe = ffprobe.run_probe(file)
+            if probe and probe.has_embedded_cover:
+                return file
+        return None
 
     def _finish_bind(self, input_path, output_path):
         """Copy the output and cleanup."""

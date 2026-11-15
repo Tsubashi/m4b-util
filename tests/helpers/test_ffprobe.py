@@ -121,3 +121,18 @@ def test_get_duration_no_metadata(mkv_file_path, capsys):
     with pytest.raises(RuntimeError) as e:
         ffprobe.get_file_duration(mkv_file_path)
     assert ("Cannot parse duration listed in file." in str(e.value))
+
+
+def test_has_embedded_cover(covered_audio_file):
+    """Report that a file with cover art has an embedded cover."""
+    assert ffprobe.run_probe(covered_audio_file).has_embedded_cover
+
+
+def test_has_no_embedded_cover(mp3_file_path):
+    """Report that a plain audio file has no embedded cover."""
+    assert not ffprobe.run_probe(mp3_file_path).has_embedded_cover
+
+
+def test_video_is_not_embedded_cover(video_only_file):
+    """Do not mistake an actual video stream for cover art."""
+    assert not ffprobe.run_probe(video_only_file).has_embedded_cover

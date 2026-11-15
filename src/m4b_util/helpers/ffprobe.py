@@ -15,6 +15,19 @@ class Probe:
         self.tags = self.data.get('format', dict()).get('tags', None)
         self.chapters = self.data.get('chapters')
 
+    @property
+    def cover_stream(self):
+        """The stream holding the file's embedded cover image, or None if it doesn't have one."""
+        for stream in self.streams or list():
+            if stream.get('disposition', dict()).get('attached_pic') == 1:
+                return stream
+        return None
+
+    @property
+    def has_embedded_cover(self):
+        """Whether the file contains an embedded cover image."""
+        return self.cover_stream is not None
+
     def first_stream_of(self, codec_type):
         """Get the first stream matching the requested arguments.
 

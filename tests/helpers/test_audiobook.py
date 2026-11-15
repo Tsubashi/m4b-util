@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from natsort import natsorted
 import testhelpers
 
-from m4b_util.helpers import Audiobook, ffprobe, SegmentData
+from m4b_util.helpers import Audiobook, cover_utils, ffprobe, SegmentData
 
 
 def _do_dir_scan(book, in_dir, use_filenames=False, decode_durations=False, **kwargs):
@@ -46,6 +46,22 @@ def _add_metadata(file_path, **kwargs):
         run(cmd, capture_output=True, check=True)
 
         shutil.move(tmp_path, file_path)
+
+
+def _embed_cover(file_path, cover_path):
+    """Embed cover_path into file_path as its cover art."""
+    with TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir) / f"temp{file_path.suffix}"
+        cover_utils.add_cover(file_path, cover_path, tmp_path)
+        shutil.move(tmp_path, file_path)
+
+
+def _cover_bytes(input_path, tmp_path):
+    """Get the cover image of input_path as normalized png bytes, failing the test if it has no cover."""
+    output_path = tmp_path / f"extracted_{input_path.stem}.png"
+    cover_utils.extract_cover(input_path, output_path)
+    assert output_path.exists(), f"{input_path} has no cover"
+    return output_path.read_bytes()
 
 
 def test_suggested_file_name():
@@ -580,6 +596,119 @@ def test_wrong_file_ext_cover_image_in_chapter_dir(test_data_path, m4a_path, cov
         m4a_path,
         cover=None
     )
+
+
+def test_explicit_cover_beats_cover_in_chapter_dir(test_data_path, m4a_path, cover_image_path):
+    """Keep a cover that was explicitly specified, even if the directory has an image file named "cover"."""
+    shutil.copy(cover_image_path, m4a_path / "cover.png")
+    explicit_cover_path = test_data_path / "cover2.png"
+    _do_dir_scan(
+        Audiobook(cover=explicit_cover_path),
+        m4a_path,
+        cover=explicit_cover_path
+    )
+
+
+def test_cover_in_chapter_dir_is_not_a_chapter_when_cover_is_explicit(test_data_path, m4a_path, cover_image_path):
+    """Skip an image file named "cover" when scanning for chapters, even if it is not used as the cover."""
+    shutil.copy(cover_image_path, m4a_path / "cover.png")
+    b = Audiobook(cover=test_data_path / "cover2.png")
+    b.add_chapters_from_directory(m4a_path)
+    assert len(b.chapters) == 8
+
+
+def test_bind_preserves_embedded_cover(m4a_path, tmp_path, cover_image_path):
+    """Use the cover embedded in an input file when no other cover is available."""
+    _embed_cover(m4a_path / "2 - 220Hz.m4a", cover_image_path)
+    out_file_path = tmp_path / "Book.m4b"
+    b = Audiobook()
+    b.add_chapters_from_directory(m4a_path)
+    assert b.bind(out_file_path)
+
+    probe = ffprobe.run_probe(out_file_path)
+    assert len(probe.chapters) == 8
+    assert probe.has_embedded_cover
+    assert _cover_bytes(out_file_path, tmp_path) == _cover_bytes(cover_image_path, tmp_path)
+
+
+def test_bind_uses_first_embedded_cover(m4a_path, tmp_path, test_data_path, cover_image_path):
+    """Use the embedded cover of the first input file that has one."""
+    first_cover_path = test_data_path / "cover2.png"
+    _embed_cover(m4a_path / "2 - 220Hz.m4a", first_cover_path)
+    _embed_cover(m4a_path / "5 - 550Hz.m4a", cover_image_path)
+    out_file_path = tmp_path / "Book.m4b"
+    b = Audiobook()
+    b.add_chapters_from_directory(m4a_path)
+    assert b.bind(out_file_path)
+
+    assert _cover_bytes(out_file_path, tmp_path) == _cover_bytes(first_cover_path, tmp_path)
+    assert _cover_bytes(out_file_path, tmp_path) != _cover_bytes(cover_image_path, tmp_path)
+
+
+def test_bind_cover_file_beats_embedded_cover(m4a_path, tmp_path, test_data_path, cover_image_path):
+    """Prefer an image file named "cover" over a cover embedded in an input file."""
+    _embed_cover(m4a_path / "1 - 110Hz.m4a", test_data_path / "cover2.png")
+    shutil.copy(cover_image_path, m4a_path / "cover.png")
+    out_file_path = tmp_path / "Book.m4b"
+    b = Audiobook()
+    b.add_chapters_from_directory(m4a_path)
+    assert b.bind(out_file_path)
+
+    assert _cover_bytes(out_file_path, tmp_path) == _cover_bytes(cover_image_path, tmp_path)
+
+
+def test_bind_explicit_cover_beats_embedded_cover(m4a_path, tmp_path, test_data_path, cover_image_path):
+    """Prefer an explicitly specified cover over a cover embedded in an input file."""
+    _embed_cover(m4a_path / "1 - 110Hz.m4a", test_data_path / "cover2.png")
+    out_file_path = tmp_path / "Book.m4b"
+    b = Audiobook(cover=cover_image_path)
+    b.add_chapters_from_directory(m4a_path)
+    assert b.bind(out_file_path)
+
+    assert _cover_bytes(out_file_path, tmp_path) == _cover_bytes(cover_image_path, tmp_path)
+
+
+def test_bad_cover_with_embedded_cover(tmp_path, m4a_path, cover_image_path):
+    """Throw an error if we can't add the specified cover, rather than falling back on an embedded one."""
+    _embed_cover(m4a_path / "1 - 110Hz.m4a", cover_image_path)
+    cover_path = tmp_path / "not-really-a-cover.png"
+    open(cover_path, 'a').close()
+    b = Audiobook(cover=cover_path)
+    b.add_chapters_from_directory(m4a_path)
+    with testhelpers.expect_exit():
+        b.bind(tmp_path / "Book.m4b")
+
+
+def test_rebind_single_file_selection_preserves_embedded_cover(chaptered_audio_file_path, tmp_path, cover_image_path):
+    """Keep the embedded cover when binding only some of the chapters of a single file."""
+    _embed_cover(chaptered_audio_file_path, cover_image_path)
+    out_file_path = tmp_path / "Book.m4b"
+    b = Audiobook()
+    b.add_chapters_from_chaptered_file(chaptered_audio_file_path)
+    b.chapters = b.chapters[1:3]
+    assert b.bind(out_file_path)
+
+    assert len(ffprobe.run_probe(out_file_path).chapters) == 2
+    assert _cover_bytes(out_file_path, tmp_path) == _cover_bytes(cover_image_path, tmp_path)
+
+
+def test_bind_unusable_embedded_cover(m4a_path, tmp_path, cover_image_path, monkeypatch, capsys):
+    """Warn and bind without a cover if the embedded cover cannot be carried over."""
+    _embed_cover(m4a_path / "1 - 110Hz.m4a", cover_image_path)
+
+    def failing_add_cover(input_path, cover_path, output_path):
+        raise RuntimeError("ffmpeg could not add the cover.")
+
+    out_file_path = tmp_path / "Book.m4b"
+    b = Audiobook()
+    b.add_chapters_from_directory(m4a_path)
+    monkeypatch.setattr(cover_utils, "add_cover", failing_add_cover)
+    assert b.bind(out_file_path)
+
+    assert "Unable to preserve the embedded cover" in capsys.readouterr().out
+    probe = ffprobe.run_probe(out_file_path)
+    assert len(probe.chapters) == 8
+    assert not probe.has_embedded_cover
 
 
 def test_tmp_path():

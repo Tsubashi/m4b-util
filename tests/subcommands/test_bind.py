@@ -1,7 +1,10 @@
 """Test the Bind subcommand."""
+import filecmp
+import shutil
 from unittest.mock import patch
 
 import m4b_util
+from m4b_util.helpers import cover_utils
 
 
 def _run_bind_cmd(arg_list):
@@ -134,3 +137,18 @@ def test_bind_no_files(capsys):
 
     output = capsys.readouterr()
     assert ("You must provide either an input folder or a list of files" in output.out)
+
+
+def test_bind_cover_argument_beats_cover_file(m4a_path, tmp_path, test_data_path, cover_image_path):
+    """Use the cover given on the command line, even if the input folder has an image file named "cover"."""
+    shutil.copy(cover_image_path, m4a_path / "cover.png")
+    explicit_cover_path = test_data_path / "cover2.png"
+    out_dir_path = tmp_path / "out"
+    out_dir_path.mkdir()
+    _run_bind_cmd([str(m4a_path), "--cover", str(explicit_cover_path), "--output-dir", str(out_dir_path)])
+
+    expected_cover_path = tmp_path / "expected.png"
+    actual_cover_path = tmp_path / "actual.png"
+    cover_utils.extract_cover(explicit_cover_path, expected_cover_path)
+    cover_utils.extract_cover(out_dir_path / "None - None.m4b", actual_cover_path)
+    assert filecmp.cmp(expected_cover_path, actual_cover_path, shallow=False)

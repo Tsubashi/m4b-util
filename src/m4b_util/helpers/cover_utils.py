@@ -1,7 +1,7 @@
 """Utility functions relating to cover images."""
 from rich import print
 
-from m4b_util.helpers import ffprogress
+from m4b_util.helpers import ffprobe, ffprogress
 
 
 def extract_cover(input_path, output_path):
@@ -24,9 +24,16 @@ def add_cover(input_path, cover_path, output_path):
     """Add a cover image to an audio file.
 
     :param input_path: What to add the cover to.
-    :param cover_path: What cover to add.
+    :param cover_path: What cover to add. Either an image file, or an audio file with an embedded cover.
     :param output_path: Where to put the new file.
     """
-    cmd = ["ffmpeg", "-y", "-i", input_path, "-i", cover_path, "-map", "0:a", "-map", "1",
+    # An image file's only stream is the cover. An audio file may have other video streams, so pick out its cover.
+    cover_map = "1:v:0"
+    probe = ffprobe.run_probe(cover_path)
+    if probe and probe.has_embedded_cover:
+        cover_map = f"1:{probe.cover_stream['index']}"
+
+    # Take nothing but the image from the cover source. In particular, don't let it supply chapters.
+    cmd = ["ffmpeg", "-y", "-i", input_path, "-i", cover_path, "-map", "0:a", "-map", cover_map, "-map_chapters", "0",
            "-c", "copy", "-disposition:v:0", "attached_pic", output_path]
     ffprogress.run(cmd, task_name="Adding Cover.", print_errors=False)
