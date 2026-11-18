@@ -1,7 +1,6 @@
 # Standard Library
 import argparse
 from pathlib import Path
-import re
 import sys
 
 # Third Party
@@ -10,24 +9,32 @@ from rich import print
 
 # Local
 from ..helpers import Audiobook, ffprobe, SegmentData
+from ..helpers.cue import (
+    cue_from_segment_data,
+    cue_time_to_seconds,
+    seconds_to_cue_time,
+    segment_data_from_cue,
+)
 from ..helpers.ffmetadata import FFMETADATA_TERMINATOR_FRIENDLY_NAMES
 
 
 def _parse_args():
     parser = argparse.ArgumentParser(
         prog="m4b-util load-labels",
-        description="Convert between audacity labels and ffmpeg chapter metadata."
+        description="Convert between audacity labels, cue sheets, and ffmpeg chapter metadata."
     )
     # Inputs
     input_options = parser.add_mutually_exclusive_group(required=True)
     input_options.add_argument("--from-book", help="Read chapters from file.")
     input_options.add_argument("--from-label-file", help="Read audacity labels from text file.")
     input_options.add_argument("--from-metadata-file", help="Read ffmpeg metadata from file.")
+    input_options.add_argument("--from-cue-file", help="Read cue sheet from file.")
 
     # Outputs
     output_options = parser.add_argument_group("output options")
     output_options.add_argument("--to-metadata-file", type=str, help="Output ffmpeg metadata to file.")
     output_options.add_argument("--to-label-file", type=str, help="Output labels to file.")
+    output_options.add_argument("--to-cue-file", type=str, help="Output cue sheet to file.")
     output_options.add_argument("--to-book", type=str, help="Apply labels as chapters to existing book file.")
 
     args = parser.parse_args(sys.argv[2:])
@@ -85,6 +92,9 @@ def _handle_input(args, book):
         with open(args.from_label_file) as f:
             labels = f.readlines()
         book.chapters = segment_data_from_labels(labels)
+    elif args.from_cue_file:
+        with open(args.from_cue_file) as f:
+            book.chapters = segment_data_from_cue(f.readlines())
     elif args.from_book:
         book.add_chapters_from_chaptered_file(args.from_book)
     else:  # args.from_metadata_file:
@@ -107,6 +117,10 @@ def _handle_output(args, book):
         with open(args.to_label_file, 'w') as f:
             for label in labels_from_segment_data(book.chapters):
                 f.write(f"{label}\n")
+    if args.to_cue_file:
+        with open(args.to_cue_file, 'w') as f:
+            for line in cue_from_segment_data(book.chapters, Path(args.to_cue_file).name):
+                f.write(f"{line}\n")
     if args.to_metadata_file:
         with open(args.to_metadata_file, 'w') as f:
             f.write(book.metadata)
